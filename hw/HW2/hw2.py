@@ -27,7 +27,6 @@ push_model = np.array([[1.0, 0.6],
 no_action_model = np.array([[1.0, 0.0],
                             [0.0, 1.0]])
 
-# Initial belief and measurement data
 initial_bel = np.array([[0.5],
                         [0.5]])
 measurements = [0, 0, 0, 0, 0, 1, 0, 0]
@@ -36,7 +35,7 @@ step = np.arange(0, len(measurements))
 # Run the bayes filter for no action and push every time model
 no_action_update = bayes_update(initial_bel, no_action_model, measurement_model, measurements)
 push_update = bayes_update(initial_bel, push_model, measurement_model, measurements)
-# Plotting
+
 plt.plot(step, push_update, 'o-', label='With push')
 plt.plot(step, no_action_update, 's-', label='No action')
 plt.grid()
