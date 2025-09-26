@@ -15,8 +15,7 @@ class DroneKF:
         self.predicted_state_cov = numpy.identity(2) * default_var
         self.time = None
 
-    def set_state(self, timestamp,
-                  position = 0.0, velocity = 0.0):
+    def set_state(self, timestamp, position=0.0, velocity=0.0):
         self.time = timestamp
         self.state[0,0] = position
         self.state[1,0] = velocity

@@ -16,7 +16,10 @@ bot_model.set_state(0)
 estimator = DroneKF(m, T)
 estimator.set_state(0)
 
+print(f"Esimator B: {estimator.B_matrix()}")
+
 mismatched_estimator = DroneKF(1.1*m, T)
+print(f"Wrong Estimator B: {mismatched_estimator.B_matrix()}")
 mismatched_estimator.set_state(0)
 
 thrust_var = 0.25
@@ -24,10 +27,6 @@ thrust_var = 0.25
 # 5 seconds of simulation
 t = time_step
 all_t = [i * t for i in range(1, 1001)]
-
-# u_nominal = [T / m - g for time in all_t]
-# var_u = thrust_var / m**2
-# input = [u+n for u, n in zip(u_nominal, list(numpy.random.normal(0, math.sqrt(var_u),len(all_t))))]
 
 noisy_thrust = [T + numpy.random.normal(0, math.sqrt(thrust_var)) for i in all_t]
 
