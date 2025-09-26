@@ -4,11 +4,13 @@ import numpy
 import math
 import random
 
-# Drone parameters
 m = 0.25
 T = 2.7
+thrust_var = 0.25
 g = 9.81
 time_step = 1 / 200
+sim_time = 5
+total_steps = int(sim_time / time_step)
 
 bot_model = DroneKF(m, T)
 bot_model.set_state(0)
@@ -16,18 +18,10 @@ bot_model.set_state(0)
 estimator = DroneKF(m, T)
 estimator.set_state(0)
 
-print(f"Esimator B: {estimator.B_matrix()}")
-
 mismatched_estimator = DroneKF(1.1*m, T)
-print(f"Wrong Estimator B: {mismatched_estimator.B_matrix()}")
 mismatched_estimator.set_state(0)
 
-thrust_var = 0.25
-
-# 5 seconds of simulation
-t = time_step
-all_t = [i * t for i in range(1, 1001)]
-
+all_t = [i * time_step for i in range(1, total_steps)]
 noisy_thrust = [T + numpy.random.normal(0, math.sqrt(thrust_var)) for i in all_t]
 
 min_var_z = 0.01

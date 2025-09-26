@@ -45,12 +45,6 @@ class DroneKF:
         z_cov = self.C_matrix() @ self.state_cov @ self.C_matrix().transpose()
         return z, z_cov
 
-    def get_input(self, var=default_var):
-        u_nominal = self.T / self.m - self.g
-        u_var = var / self.m**2
-        u = u_nominal + numpy.random.normal(0, math.sqrt(u_var))
-        return u
-
     def peek_pos(self):
         return self.state[0, 0]
 

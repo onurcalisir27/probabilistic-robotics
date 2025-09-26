@@ -4,3 +4,4 @@ team_info.txt
 *.png
 requirements.txt
 examples/
+**/__pycache__/*
