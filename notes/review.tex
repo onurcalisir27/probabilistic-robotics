@@ -1,0 +1,441 @@
+\documentclass[14pt,letterpaper]{article}
+
+% ============ Page Layout ============
+\usepackage[margin=1in]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Midterm Review}
+\lhead{Onur Calisir}
+\rfoot{Page \thepage}
+
+% ============ Math Packages ============
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}  % Enhanced math (e.g., dcases)
+\usepackage{bm}         % Bold math symbols (\bm{x})
+\usepackage{bbm}        % Blackboard bold for indicators
+
+% ============ Graphics & Figures ============
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{bayesnet, arrows.meta, positioning}
+
+% ============ Algorithms ============
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\SetKwInput{KwInput}{Input}
+\SetKwInput{KwOutput}{Output}
+
+% ============ Code Blocks ============
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% ============ Theorem Environments ============
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{example}{Example}[section]
+
+% ============ Custom Commands ============
+% Probability & Statistics
+\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+\newcommand{\expect}[1]{\mathbb{E}\left[#1\right]}
+\newcommand{\var}[1]{\text{Var}\left(#1\right)}
+\newcommand{\cov}[2]{\text{Cov}\left(#1, #2\right)}
+
+% Distributions
+\newcommand{\normal}[2]{\mathcal{N}\left(#1; #2\right)}
+\newcommand{\uniform}[2]{\mathcal{U}\left(#1; #2\right)}
+
+% State space notation
+\newcommand{\state}{\bm{x}}
+\newcommand{\obs}{\bm{z}}
+\newcommand{\control}{\bm{u}}
+\newcommand{\noise}{\bm{w}}
+
+% ============ Hyperlinks ============
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+% ============ Title Info ============
+\title{Probabilistic Robotics - Midterm Study Notes}
+\author{Onur Calisir}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Basic Concepts in Probability}
+
+\subsection{Fundamental Principle}
+
+In probabilistic robotics, quantities such as sensor measurements, controls, and the states of a robot and its environment are all modeled as random variables.
+\textbf{Random variables} can take on multiple values, and they do so according to specific probabilistic laws.
+Probabilistic inference is the process of claculating these laws for random variables that are derived from other random variables and observed data.
+\begin{itemize}
+  \item No sensor can measure the signal with full accuracy and no actutation results in perfect accurate motion
+  \item Sensing and motion are \textbf{uncertain} since signals are \textbf{random variables}
+\end{itemize}
+
+\subsubsection{Random Events}
+
+\begin{itemize}
+  \item Start with an event set
+  \item Construct a set of all subsets of events set
+  \item These are all events that can happen in our "world"
+  \item Example Rolling a Dice: rolled 4, rolled an odd number
+\end{itemize}
+
+\begin{definition}[Probability]
+  Probability is a function that maps \textbf{A} to interval $[0,1]$
+  \begin{align}
+    \prob{\Omega} &= 1 \\
+    \prob{\emptyset} &= 0 \\
+    \textbf{A}_i \cap \textbf{A}_j &= \emptyset, \forall i,j \Rightarrow \prob{\bigcup_{i}A_i} = \sum_{i}{\prob{A_i}}
+  \end{align}
+\end{definition}
+
+\subsection{Probability Definitions}
+Let $X$ denote a random variable and $x$ denote a specific value that $X$ might assume.
+A standard example of a random is coin flip, where X can take on the values heads or tails.
+If the space of all values that $X$ can take on is discrete, we write:
+\begin{align}
+  \prob{X=x} \\
+  \sum_{x}{\prob{X=x}} &= 1
+\end{align}
+
+Probabilities are alwas non-negative, that is $\prob{X=x} \geq 0$.
+Continuous spaces are characterized by random variables that can take on a continuum of values.
+Unless explicitly stated, we assume that all continuous random variables possess \textbf{probability density functions} (PDFs).
+
+A common density function is that of one-dimensional \textbf{normal distribution} with mean \textbf{$\mu$} and variance \textbf{$\sigma^2$}
+The PDF of a normal distribution is given by the \textbf{Gaussian} function:
+\begin{equation}
+    \prob{x} = (2\pi\sigma^2)^{-\frac{1}{2}} \exp\{{-\frac{1}{2}\frac{(x-\mu)^2}{\sigma^2}}\}
+\end{equation}
+
+Normal distribtuions are frequently abbreviated as $\normal{x}{\mu, \sigma^2}$. However this notation assumes that $x$ is a scalar value.
+Often $x$ will be a multi-dimensional vector. Normal distributions over vectors are called multivariate. Multivariate normal distribtuions are characterized by density functions of the following form:
+\begin{equation}
+  \prob{x} = \det{(2\pi\Sigma)^{-\frac{1}{2}}} exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\}
+  \label{eq:Multivariate normal distribution PDF}
+\end{equation}
+ Here $\mu$ is the mean vector. $\Sigma$ is a positive semidefinite and symmetric matrix called the \textbf{covariance matrix}. Just as discrete probability distribtuions always sum up to 1, a PDF always integrates to 1:
+ \begin{equation}
+   \int{\prob{x}dx} = 1
+  \label{eq:PDF integral}
+ \end{equation}
+
+ However unlike a discrete probability, the value of a PDF is not uppder-bounded by 1.
+\begin{definition}[Joint and Conditional Probability]
+Joint and conditional probabilities are defined as:
+\begin{align}
+    \prob{x, z} &= \prob{X=x, Z=z} \\
+    \prob{x|z} &= \frac{\prob{x,z}}{\prob{z}}
+    \intertext{When $X$ and $Z$ are independent:}
+    \prob{x, z} &= \prob{x}\prob{z} \\
+    \prob{x|z} &= \frac{\prob{x}\prob{z}}{\prob{z}} = \prob{x}
+\end{align}
+\end{definition}
+
+In other words, if X and Z are independent, Z tells us nothing about the value of X. There is no advantage of knowing the value of Z if we are interested in X.
+Independence and its generalizations are known as conditional independence.
+An interesting fact, which follows from the definition of conditional probaility and the axioms of probability measures, is often referred to as Theorem of total probability:
+\begin{align}
+  \prob{x} &= \sum_{z}{\prob{x \mid z}\prob{z}}  \hspace{5mm}  \text{(discrete case)}\\
+  \prob{x} &= \int{\prob{x \mid z}\prob{z} dz} \hspace{8.5mm} \text{(continuous case)}
+\end{align}
+
+If $\prob{x \mid z}$ or $\prob{z}$ are zero, we define the product of $\prob{x \mid z}\prob{z}$ to be zero, regardless of the value of the remaining factor.
+
+\subsection{Bayes Rule}
+Equally important is Bayes rule, which relates a conditional of type $\prob{x \mid z}$ to its "inverse", $\prob{z \mid x}$.
+The rule, as stated here, required $\prob{z}>0$:
+\begin{align}
+  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\sum_{x'}{\prob{z \mid x'}\prob{x'}}} \\
+  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\int_{x'}{\prob{z \mid x'}\prob{x'}dx'}}
+\end{align}
+
+Bayes rule plays a predominant role in probabilistic robotics (and probabilistic inference in general). If $x$ is a quantity that we would like to infer from z, the probability $\prob{x}$ will be referred to as prior probability distribution, and z is called the data (e.g., a sensor measurement).
+The distribution $\prob{x}$ summarizes the knowledge we have regarding $X$ prior to incorporating the data z. The probability $\prob{x \mid z}$ is called the \textbf{posterior probability distribution} over X.
+\newpage
+
+Bayes rule provides a convenient way to compute a pos-
+terior p(x | y) using the “inverse” conditional probability p(y | x) along with
+the prior probability p(x).
+
+\section{Bayes Filter}
+
+\subsection{Core Concepts}
+
+The fundamental idea behind Bayes filtering is to recursively estimate the posterior probability distribution over the state $\state_t$ given all observations up to time $t$.
+
+\begin{definition}[Belief]
+The \textbf{belief} at time $t$ represents our knowledge about the state given all past inputs and measurements:
+\begin{equation}
+    bel(\state_t) = p(\state_t \mid \obs_{1:t}, \control_{1:t})
+\end{equation}
+\end{definition}
+
+\begin{definition}[Prediction]
+The \textbf{prediction} at time $t$ represents our knowledge about the state before applying the very last measurement
+\begin{equation}
+  \bar{bel}(\state_{t}) = p(\state_{t} \mid \obs_{1:t-1}, \control_{1:t})
+\end{equation}
+\end{definition}
+
+\begin{definition}[Markov Assumption]
+  The \textbf{Markov assumption} postulates that past and future data independent if one knows the current state $x_t$.
+\begin{equation}
+  \bar{bel}(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \obs_{t}, \control_{t})
+\end{equation}
+\indent Prediction stems from last known state
+\begin{equation}
+  \bar{bel}(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \control_{t})
+\end{equation}
+\end{definition}
+
+\subsection{Bayesian Inference}
+\begin{equation}
+  \prob{x \mid z} = \frac{\prob{z \mid x}\prob{x}}{\prob{z}}
+  \label{eq:Bayes equation}
+\end{equation}
+
+Where
+\begin{itemize}
+  \item $\prob{x \mid z}$ : New knowledge about the system state, after incorparting the measurement
+  \item $\prob{z \mid x}$ : Measurement model
+  \item $\prob{x}$ : \textbf{Prior} knowledge about the system state
+  \item $\prob{z}$ : Normalization factor
+\end{itemize}
+
+\subsection{The Bayes Filter Algorithm}
+
+The Bayes filter operates in two stages: prediction and correction.
+
+\begin{algorithm}[H]
+\caption{Bayes Filter}
+\KwInput{$bel(\state_{t-1})$, control $\control_t$, measurement $\obs_t$}
+\KwOutput{$bel(\state_t)$}
+
+\BlankLine
+\tcp{Prediction Step}
+\For{all $\state_t$}{
+    $\overline{bel}(\state_t) = \int p(\state_t \mid \control_t, \state_{t-1}) \cdot bel(\state_{t-1}) \, d\state_{t-1}$\;
+}
+
+\BlankLine
+\tcp{Correction Step}
+\For{all $\state_t$}{
+    $bel(\state_t) = \eta \cdot p(\obs_t \mid \state_t) \cdot \overline{bel}(\state_t)$\;
+}
+
+\BlankLine
+\Return{$bel(\state_t)$}
+\end{algorithm}
+
+\subsection{Mathematical Derivation}
+
+Starting from the definition of belief, we can derive the recursive form using Bayes' rule and the Markov assumption:
+
+\begin{align}
+    bel(\state_t) &= p(\state_t \mid \obs_{1:t}, \control_{1:t}) \\
+    &= \eta \cdot p(\obs_t \mid \state_t, \obs_{1:t-1}, \control_{1:t}) \cdot p(\state_t \mid \obs_{1:t-1}, \control_{1:t}) \\
+    &= \eta \cdot p(\obs_t \mid \state_t) \cdot \int p(\state_t \mid \state_{t-1}, \control_t) \cdot bel(\state_{t-1}) \, d\state_{t-1}
+\end{align}
+
+where $\eta$ is a normalization constant.
+
+\section{Kalman Filters}
+
+\subsection{Linear Gaussian Systems}
+
+The Kalman filter assumes linear dynamics and Gaussian noise:
+
+\begin{align}
+    \state_t &= A_t \state_{t-1} + B_t \control_t + \epsilon_t, \quad \epsilon_t \sim \normal{0}{R_t} \label{eq:motion_model}\\
+    \obs_t &= C_t \state_t + \delta_t, \quad \delta_t \sim \normal{0}{Q_t} \label{eq:measurement_model}
+\end{align}
+
+\begin{example}[1D Motion]
+Consider a simple 1D position-velocity system:
+\[
+\state_t = \begin{bmatrix} p_t \\ v_t \end{bmatrix}, \quad
+A_t = \begin{bmatrix} 1 & \Delta t \\ 0 & 1 \end{bmatrix}, \quad
+B_t = \begin{bmatrix} \frac{1}{2}\Delta t^2 \\ \Delta t \end{bmatrix}
+\]
+\end{example}
+
+\subsection{Implementation}
+
+Here's a basic Python implementation of the Kalman filter:
+
+\begin{lstlisting}[language=Python, caption=Kalman Filter Implementation]
+import numpy as np
+
+class KalmanFilter:
+    def __init__(self, A, B, C, R, Q):
+        self.A = A  # State transition matrix
+        self.B = B  # Control input matrix
+        self.C = C  # Observation matrix
+        self.R = R  # Process noise covariance
+        self.Q = Q  # Measurement noise covariance
+
+    def predict(self, mu, Sigma, u):
+        """Prediction step"""
+        mu_bar = self.A @ mu + self.B @ u
+        Sigma_bar = self.A @ Sigma @ self.A.T + self.R
+        return mu_bar, Sigma_bar
+
+    def update(self, mu_bar, Sigma_bar, z):
+        """Correction step"""
+        # Kalman gain
+        K = Sigma_bar @ self.C.T @ np.linalg.inv(
+            self.C @ Sigma_bar @ self.C.T + self.Q
+        )
+
+        # Update belief
+        mu = mu_bar + K @ (z - self.C @ mu_bar)
+        Sigma = (np.eye(len(mu)) - K @ \elf.C) @ Sigma_bar
+
+        return mu, Sigma
+\end{lstlisting}
+
+\section{Practice Problem 1:}
+\begin{itemize}
+  \item On each visit the robot spews out one candy with probability $0.6$, two candies with probability 0.3 or three with probability 0.1
+  \item Let Q(U=u) be the probability distribution function for the robot spewing the candy.
+  \begin{itemize}
+    \item Q(u=1) = 0.6
+    \item Q(u=2) = 0.3
+    \item Q(u=3) = 0.1
+  \end{itemize}
+  \item To refill the candy compartment, it can estimate tan accurate count with probability 0.6 or it can be off by one in either direction with probability
+  \item Let P(X=x) to be the probability distribution function for the robots measurement of how many candy its holding.
+  \begin{itemize}
+    \item P(x=x) = 0.6
+    \item P(x=x+1) = 0.2
+    \item P(x=x-1) = 0.2
+  \end{itemize}
+\end{itemize}
+
+\textbf{We start with $50$ candies, After the first visit, sensor measured $48$.
+After the second visit, the sensor measured $48$ again. Calculate the belief of the number of candy in the comporatement after the first and the second visit.
+}
+
+\begin{align}
+  p(x \mid z) &= \frac{p(z \mid x)p(x)}{p(z)} \\
+  p(x) &= \frac{p(x \mid z)p(z)}{p(z | x)} \\
+  \label{eq:Bayes Rule}
+\end{align}
+
+\begin{align}
+  P(u = 1) &= 0.6 \\
+  P(u = 2) &= 0.3 \\
+  P(u = 3) &= 0.1 \\
+  \label{eq: Action Probability Distributions}
+\end{align}
+
+Model the state as:
+\begin{equation}
+  x(t+1) = x(t) - u(t) \\
+  \label{eq:State Model}
+\end{equation}
+
+Initially, we have a belief of the number of candy in the comporatement to be: $bel(x_t=50) = 1.0$
+At the first visit, the robot takes an action. Now, we have:
+\begin{align*}
+  \bar{bel}(x_t=49) &= 0.6 \\
+  \bar{bel}(x_t=48) &= 0.3 \\
+  \bar{bel}(x_t=47) &= 0.1 \\
+\end{align*}
+
+Here we get a measurement from our sensor, and we measure $z = 48$. But since our measurement model has uncertainty, this belief might be wrong.
+We need to calculate the bayes update to get a posterior. So we can do:
+\begin{equation}
+  P(z=48 \mid x_t) = \eta P(z=48 \mid x=49)
+  P(z=48 \mid x=48) = 0.6
+  P(z=48 \mid x=47) = 0.2
+  \label{eq:}
+\end{equation}
+
+% # we get measurement 48
+%
+% # if we had u=1, x=49: 0.6 * 0.2 = 0.12
+% # if we had u=2, x=48: 0.3 * 0.6 = 0.18
+% # if we had u=3, x=47: 0.1 * 0.2 = 0.02
+% unnormalized_posterior = np.array([[0.12], [0.18], [0.02]])
+% posterior = unnormalized_posterior / sum(unnormalized_posterior)
+%
+% # [0.375  0.5625 0.0625] means
+% # [49 48 47]
+%
+% """
+% if we had x_t-1 = 49, u=1: x=48 0.375 * 0.6
+%                       u=2: x=47 0.375 * 0.3
+%                       u=3: x=46 0.375 * 0.1
+%
+% if we had x_t-1 = 48, u=1: x=47 0.5625 * 0.6
+%                       u=2: x=46 0.5625 * 0.3
+%                       u=3: x=45 0.5625 * 0.1
+%
+% if we had x_t-1 = 47, u=1: x=46 0.0625 * 0.6
+%                       u=2: x=45 0.0625 * 0.3
+%                       u=3: x=44 0.0625 * 0.1
+%
+%     we got measurement z=48 again
+%
+% Which means we could have gotten P(z=48 | x=48): (0.375 * 0.6) * 0.6
+%                                  P(z=48 | x=47): (0.375 * 0.3) * 0.2 + (0.5625 * 0.6) * 0.2
+%
+% """
+% # Take action
+% bel_48 = 0.6 * 0.375
+% bel_47 = 0.375 * 0.3 + 0.5626 * 0.6
+% bel_46 = 0.375 * 0.1 + 0.5625 * 0.3 + 0.0625 * 0.6
+% bel_45 = 0.5625 * 0.1 + 0.0625 * 0.3
+% bel_44 = 0.0625 * 0.1
+% bel_bar = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
+% unnormalized_posterior = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
+%
+% measurement_model = np.array([0.6, 0.2, 0.0, 0.0, 0.0])
+% bel_bar = np.array([0.225, 0.450, 0.244, 0.075, 0.006])
+% unnormalized_posterior = bel_bar * measurement_model
+% posterior = unnormalized_posterior / sum(unnormalized_posterior)
+%
+% print(f"{posterior}")
+% # bel = [z=x+1, z=x, z=x-1]
+% measurement_mdl = np.array([[0.2, 0.6, 0.2]])
+%
+% After visit 1 (z=48): bel(x(1)) = [0.375, 0.5625, 0.0625] for x ∈ {49, 48, 47}
+% After visit 2 (z=48): bel(x(2)) = [0.6, 0.4, 0.0, 0.0, 0.0] for x ∈ {48, 47, 46, 45, 44}
+\end{document}
+

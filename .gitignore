@@ -1,3 +1,4 @@
+ros_ws/
 venv/
 team_info.txt
 *.pdf
@@ -5,3 +6,10 @@ team_info.txt
 requirements.txt
 examples/
 **/__pycache__/*
+notes/review.aux
+notes/review.fdb_latexmk
+notes/review.fls
+notes/review.log
+notes/review.out
+notes/review.synctex.gz
+notes/review.toc
