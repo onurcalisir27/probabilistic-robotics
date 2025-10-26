@@ -1,0 +1,378 @@
+\documentclass[14pt,letterpaper]{article}
+
+% Essential packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+
+% Math and symbols
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% Graphics and figures
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subfig}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Hyperlinks
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+% Header/footer customization
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Lab 4: EKF Odometry}
+\lhead{Tianhao Hu, Zibo Yu, Onur Calisir}
+\cfoot{\thepage}
+
+% Code listing configuration
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    captionpos=b
+}
+
+% Custom commands for consistency
+\newcommand{\vect}[1]{\bm{#1}}  % Bold vectors
+\newcommand{\mat}[1]{\bm{#1}}   % Bold matrices
+
+\title{Lab 4: Odometry}
+\author{Tianhao Hu, Zibo Yu, Onur Calisir}
+\date{\today}
+
+\begin{document}
+\maketitle
+\section{Git Commit}
+
+The source code which solves the lab assignments can be found in our git repository, hosted at \\
+\texttt{git@github.com:onurcalisir27/prob\_rob\_labs.git}.
+
+We list the most relevant commits to the project are listed below, with descending recency:
+\begin{itemize}
+  \item \url{https://github.com/onurcalisir27/prob_rob_labs/commit/0523852d9d76b2dd232a7d83fe60534cd50ad0f2}
+  \item \url{https://github.com/onurcalisir27/prob_rob_labs/commit/32a0394e969ac907ba46fa0d878abf4042ce8b82}
+  \item \url{https://github.com/onurcalisir27/prob_rob_labs/commit/a4658afc93feb4fae2edf53bbe1afda5edc00977}
+  \item \url{https://github.com/onurcalisir27/prob_rob_labs/commit/355fb67da897b929a3007ab49c86a32c93e27271}
+\end{itemize}
+\section{Lab Assignments}
+
+\subsection{Ground Truth Publisher}
+
+We created a node called \textbf{lab4} which subscribes to the \texttt{/gazebo/link\_states} topic and publishes simulation ground truth pose and twist velocity to
+\texttt{/tb3/ground\_truth/pose} and \texttt{/tb3/ground\_truth/twist} topics respectively.
+Solution node has a launch parameter called \texttt{reference\_frame} which can be used to define the frame of reference for the ground truth publisher.
+Our node that solves this assignment can be executed via the following command:
+\begin{lstlisting}[language=bash]
+ros2 launch prob_rob_labs lab4_launch.py reference_frame:="odom"
+\end{lstlisting}
+
+\subsection{Visualization}
+
+Due to an unresolved time dependency error in rqt\_plot, the team decided to use an open-source time-series visualizer called \textbf{plotjuggler}.
+Plotjuggler is incredibly easy to use, and has excellent ROS integration, making it a solid alternative to rqt\_plot.
+
+If interested in plotjuggler, more can be found in their Github: \texttt{facontidavide/PlotJuggler.git}.
+We install it with the following command inside distrobox:
+
+\begin{lstlisting}[language=bash]
+apt install ros-humble-plotjuggler-ros
+\end{lstlisting}
+
+Below figure shows the working ground truth publisher pipeline. Through \texttt{teleop\_twist\_keyboard}, we are publishing linear velocity 0.5 and angular velocity 1.0.
+Also see Appendix (3.1) link for working video.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/a2_plot.png}
+\caption{Plotjuggler, Rviz, Gazebo and TeleopTwistKeyboard}
+\label{fig:step_response}
+\end{figure}
+
+
+\subsection{Robot Dynamics}
+To discover the underlying motor parameters of the Turtlebot, we devised a structural testing plan.
+We selected velocities of potential importance for both the linear and angular velocity profiles, and did 3 step input tests to observe the actual velocity ramp-up.
+We give our results in the tables that can be found in the Appendix (3.3).
+
+\begin{equation}
+  v[n+1] = a v[n] + G (1-a) u[n]
+  \label{eq:velocity}
+\end{equation}
+At all of our tests, we approximated that $G$ is very close to 1.0, so we will assume that the input gain is always unitary.
+We observed that there is almost a linear relation with $\tau$ and the commanded velocity in the linear x direction. However we also observe that the relation is less apparent at low velocities, so we formulated our approach to
+use working velocity command $u_x = 0.5$, which gives us the following linear update equation for $v_x$:
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/annoated_a3_v.png}
+\caption{Linear Velocity Step Response when Commanded velocity 0.5}
+\label{fig:linear vel}
+\end{figure}
+
+\begin{equation}
+  v[n+1] = 0.1 ^ {\frac{\Delta t}{0.5}}v[n] + (1 - 0.1 ^ {\frac{\Delta t}{0.5}})u_x[n]
+  \label{eq:Linear vel}
+\end{equation}
+
+Above equation gives us a equation which is dependent on the time step.
+
+For the angular velocity, we followed a similar testing approach. We observe that at low angular velocities, there is very high overshoot which is bad for our simple first order dynamics.
+However, we observed that at higher angular speeds ($\omega \geq 1.0$) this overshoot is less apparent, so we will take our operating angular velocity to be 1.0
+Solving for the forgetting factor with found $\tau$ resulted in the following $\Delta t$ dependent equation
+\begin{equation}
+  \omega[n+1] = 0.1^{\frac{\Delta t}{0.15}} \omega[n] + (1-0.1^{\frac{\Delta t}{0.15}}) u_{\omega}[n]
+  \label{eq:angular vel}
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/annotated_a3_w.png}
+\caption{Angulear Velocity Step Response when Commanded velocity 1.0}
+\label{fig:angulvel}
+\end{figure}
+
+We call the forgetting factor of the linear velocity $a$, and the forgetting factor of the angular velocity $b$.
+
+\subsection{State Update}
+
+Combining the robot motion model with the robot dynamics to write the state transtion equations for the nonlinear funciton defining the space in 5 equations of the following form:
+\begin{align*}
+  \vect{\bar{x}_n} &= f(\vect{\bar{x}_{n-1}}, \vect{u_{n-1}}) \\
+  \theta_n &= \theta_{n-1} + \omega_{n-1} \Delta t \\
+  x_n &= x_{n-1} + v_{n-1} \Delta t \cos(\theta_{n-1}) \\
+  y_n &= y_{n-1} + v_{n-1} \Delta t \sin(\theta_{n-1}) \\
+  v_n &= a * v_{n-1} + G_1 (1-a) u_{v, n-1} \\
+  \omega_n &= b * \omega_{n-1} + G_2 (1-b) u_{\omega, n-1} \\
+\end{align*}
+
+The state transition Jacobian $\mat{G}$ is:
+\begin{equation}
+  \frac{\partial f}{\partial \vect{\bar{x}}}|_{\vect{\bar{x}_{n-1}}} =  \mat{G} =  \begin{bmatrix}
+1 & 0 & 0 & 0 & \Delta t \\[0.3em]
+-\Delta t \cdot v \sin(\theta) & 1 & 0 & \Delta t \cos(\theta) & 0 \\[0.3em]
+\Delta t \cdot v \cos(\theta) & 0 & 1 & \Delta t \sin(\theta) & 0 \\[0.3em]
+0 & 0 & 0 & a & 0 \\[0.3em]
+0 & 0 & 0 & 0 & b
+\end{bmatrix}
+\label{eq:jacobian}
+\end{equation}
+
+The input transformation matrix $\mat{B}$ is linear:
+\begin{equation}
+\mat{B} = \begin{bmatrix}
+0 & 0 \\[0.3em]
+0 & 0 \\[0.3em]
+0 & 0 \\[0.3em]
+1-a & 0 \\[0.3em]
+0 & 1-b \\[0.3em]
+\end{bmatrix}
+\label{eq:B matrix}
+\end{equation}
+
+\subsection{Measurement Model}
+
+The measurement model is given by $\vect{z} = \mat{C}\vect{x}$, where:
+\begin{equation}
+\mat{C} = \begin{bmatrix}
+0 & 0 & 0 & \frac{1}{r_w} & \frac{R}{r_w} \\[0.5em]
+0 & 0 & 0 & \frac{1}{r_w} & -\frac{R}{r_w} \\[0.5em]
+0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+\label{eq:measurement_model}
+\end{equation}
+
+\subsection{EKF Odometry Node}
+
+We created a new node called \textbf{lab4\_ekf} and implemented our Extended Kalman filter here.
+We use the \texttt{ApproximateTimeSynchronizer} with $\text{slop} = 0.05$ to synch our IMU and wheel encoder sensor information.
+To make the EKF work for our system, we had to come up with some assumptions and approximate the uncertainty for our encoder
+
+\begin{lstlisting}[language=bash]
+ros2 launch prob_rob_labs lab4_ekf_launch.py
+\end{lstlisting}
+
+We have edited the launch file such that the above command starts the complete system for completeness.
+Through one launch file, we start the gazebo simulation, and with a 10 second delay (to leave adequate time for the gazebo to start) we start the ground truth publisher,
+the ekf odometry node, the error publisher, and even preconfigured rviz.
+
+\subsection{RVIZ Visualization}
+
+Along with the video provided for our odometry tracking which can be found under the Appendix (3.1), we present the following image which shows our setup.
+In Rviz, we are displaying the turtlebot robot model through the \texttt{/robot\_description} topic, the grount truth pose publisher is shown as the large blue arrow, and
+our \texttt{/ekf\_odom} is given as the axes representation. We use \texttt{keep\_last} argument as 2 to change the immediate change in our odometry to give a clean visualization to the viewer.
+\\
+
+Furthermore the plots show the true power of plotjuggler, which we have place the our odometry next to the ground truth equivalents.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{figures/rviz.png}
+\caption{Odometry Visualzation in Rviz2}
+\label{fig:rviz}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/plotjggler.png}
+\caption{X position(Left-Up), Y position (Right-Up), Yaw(Left-Down), Linear and Angular velocities (Right-Down)}
+\label{fig:Plotjuggler}
+\end{figure}
+
+\subsection{Error Metrics}
+
+We created a new node called \textbf{lab4\_odom\_error} and implemented an error publishing pipeline
+Through the error metrics we can see that the velocity error remains stable and low while the position error increases and decreases unstably.
+While driving in the positive x direction in global frame, we can see that the covariance of the y position grows, and while driving laterally in the global y direction, the
+robots x position covariance increases. However the velocity covariance is always within the same range.
+\begin{lstlisting}[language=bash]
+ros2 launch prob_rob_labs lab4_odom_error_launch.py
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/accumulating_error.png}
+\caption{Error acumulated in Position (Up) and Bearing (Down)}
+\label{fig:accumulating_error}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/rviz2_error.png}
+\caption{Visible Error in Rviz setup, Covariance matrix}
+\label{fig:rviz erro}
+\end{figure}
+
+\subsection{Covariance Bounds}
+
+In odometry, we expect the uncertainty related to the pose ($x, y, \theta$) of the robot to grow unbounded over time. This occurs because the EKF
+recursively corrects the robot's velocity estimates using sensor measurements (wheel encoders and IMU), but the position and orientation are never directly
+measured. Instead, they are computed by integrating velocities, causing uncertainty to accumulate with each time step. The velocity-related covariance
+terms ($\sigma^2_{vv}$, $\sigma^2_{\omega\omega}$) remain bounded because these states are directly observable through our sensors, while the pose
+covariances grow without bound due to the lack of external position reference.
+\\
+
+To be able to correct our drift in odometry position, we require a separate localization system to correct our odom frame.
+
+\newpage
+
+\section{Appendix}
+\subsection{Links To requested videos}
+\begin{itemize}
+  \item Proof of Publisher Working video: \url{https://drive.google.com/file/d/1BgQ_om1WzFUTiOXrprYZD0Lr9GFMbnhs/view?usp=drive_link}
+  \item Odometry Tracker Working video: \url{https://drive.google.com/file/d/1E806QZJUWdue_ye8ueEhAloNfjUZgpuV/view?usp=sharing}
+\end{itemize}
+
+\subsection{Covariance Matrices}
+
+We use our state covariance to populate the odometry message covaraince fields as follows:
+\begin{equation}
+\boldsymbol{\Sigma} = \begin{bmatrix}
+\sigma^2_{\theta\theta} & \sigma^2_{\theta x} & \sigma^2_{\theta y} & \sigma^2_{\theta v} & \sigma^2_{\theta\omega} \\[0.3em]
+\sigma^2_{x\theta} & \sigma^2_{xx} & \sigma^2_{xy} & \sigma^2_{xv} & \sigma^2_{x\omega} \\[0.3em]
+\sigma^2_{y\theta} & \sigma^2_{yx} & \sigma^2_{yy} & \sigma^2_{yv} & \sigma^2_{y\omega} \\[0.3em]
+\sigma^2_{v\theta} & \sigma^2_{vx} & \sigma^2_{vy} & \sigma^2_{vv} & \sigma^2_{v\omega} \\[0.3em]
+\sigma^2_{\omega\theta} & \sigma^2_{\omega x} & \sigma^2_{\omega y} & \sigma^2_{\omega v} & \sigma^2_{\omega\omega}
+\end{bmatrix}
+\end{equation}
+
+EKF odometry pose covariance matrix:
+\begin{equation}
+\boldsymbol{\Sigma}_{\text{pose}} = \begin{bmatrix}
+\sigma^2_{xx} & \sigma^2_{xy} & 0 & 0 & 0 & \sigma^2_{x\theta} \\[0.3em]
+\sigma^2_{yx} & \sigma^2_{yy} & 0 & 0 & 0 & \sigma^2_{y\theta} \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+\sigma^2_{\theta x} & \sigma^2_{\theta y} & 0 & 0 & 0 & \sigma^2_{\theta\theta}
+\end{bmatrix}
+\label{eq:pose_cov}
+\end{equation}
+
+EKF odometry twist covariance matrix:
+\begin{equation}
+\boldsymbol{\Sigma}_{\text{twist}} = \begin{bmatrix}
+\sigma^2_{vv} & 0 & 0 & 0 & 0 & \sigma^2_{v\omega} \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+0 & 0 & 0 & 0 & 0 & 0 \\[0.3em]
+\sigma^2_{\omega v} & 0 & 0 & 0 & 0 & \sigma^2_{\omega\omega}
+\end{bmatrix}
+\label{eq:twist_cov}
+\end{equation}
+
+\subsection{Robot Dynamics Tables}
+
+\begin{table}[H]
+\centering
+\caption{Turtlebot Linear Velocity Profile}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Velocity} & \textbf{Ramp-up time $\tau$} & \textbf{Input Gain $G$} \\
+\midrule
+\multirow{3}{*}{$v_x = 0.1$} & $\tau_1= 0.13$ & 1.0 \\
+                             & $\tau_2= 0.17$ & 1.0 \\
+                             & $\tau_3= 0.18$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$v_x = 0.5$} & $\tau_1= 0.55$ & 1.0 \\
+                             & $\tau_2= 0.47$ & 1.0 \\
+                             & $\tau_3= 0.50$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$v_x = 0.75$} & $\tau_1= 0.69$ & 1.0 \\
+                             & $\tau_2= 0.76$ & 1.0 \\
+                             & $\tau_3= 0.74$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$v_x = 1.0$} & $\tau_1= 0.90$ & 1.0 \\
+                             & $\tau_2= 0.88$ & 1.0 \\
+                             & $\tau_3= 0.90$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$v_x = 1.5$} & $\tau_1= 1.42$ & 1.0 \\
+                             & $\tau_2= 1.40$ & 1.0 \\
+                             & $\tau_3= 1.34$ & 1.0 \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Turtlebot Angular Velocity Profile}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Velocity} & \textbf{Ramp-up time $\tau$} & \textbf{Input Gain $G$} \\
+\midrule
+\midrule
+\multirow{3}{*}{$\omega_z = 1.0$} & $\tau_1= 0.19$ & 1.0 \\
+                                  & $\tau_2= 0.15$ & 1.0 \\
+                                  & $\tau_3= 0.19$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$\omega_z = 1.5$} & $\tau_1= 0.23$ & 1.0 \\
+                                  & $\tau_2= 0.27$ & 1.0 \\
+                                  & $\tau_3= 0.28$ & 1.0 \\
+\midrule
+\multirow{3}{*}{$\omega_z = 2.0$} & $\tau_1= 0.23$ & 1.0 \\
+                                  & $\tau_2= 0.31$ & 1.0 \\
+                                  & $\tau_3= 0.30$ & 1.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
+

@@ -1,0 +1,242 @@
+\section{Basic Concepts in Probability}
+
+\subsection{Fundamental Principle}
+
+In probabilistic robotics, quantities such as sensor measurements, controls, and the states of a robot and its environment are all modeled as random variables.
+\textbf{Random variables} can take on multiple values, and they do so according to specific probabilistic laws.
+Probabilistic inference is the process of claculating these laws for random variables that are derived from other random variables and observed data.
+\begin{itemize}
+  \item No sensor can measure the signal with full accuracy and no actutation results in perfect accurate motion
+  \item Sensing and motion are \textbf{uncertain} since signals are \textbf{random variables}
+\end{itemize}
+
+\subsubsection{Random Events}
+
+\begin{itemize}
+  \item Start with an event set
+  \item Construct a set of all subsets of events set
+  \item These are all events that can happen in our "world"
+  \item Example Rolling a Dice: rolled 4, rolled an odd number
+\end{itemize}
+
+\begin{definition}[Probability]
+  Probability is a function that maps \textbf{A} to interval $[0,1]$
+  \begin{align}
+    \prob{\Omega} &= 1 \\
+    \prob{\emptyset} &= 0 \\
+    \textbf{A}_i \cap \textbf{A}_j &= \emptyset, \forall i,j \Rightarrow \prob{\bigcup_{i}A_i} = \sum_{i}{\prob{A_i}}
+  \end{align}
+\end{definition}
+
+\subsection{Probability Definitions}
+Let $X$ denote a random variable and $x$ denote a specific value that $X$ might assume.
+A standard example of a random is coin flip, where X can take on the values heads or tails.
+If the space of all values that $X$ can take on is discrete, we write:
+\begin{align}
+  \prob{X=x} \\
+  \sum_{x}{\prob{X=x}} &= 1
+\end{align}
+
+Probabilities are alwas non-negative, that is $\prob{X=x} \geq 0$.
+Continuous spaces are characterized by random variables that can take on a continuum of values.
+Unless explicitly stated, we assume that all continuous random variables possess \textbf{probability density functions} (PDFs).
+
+A common density function is that of one-dimensional \textbf{normal distribution} with mean \textbf{$\mu$} and variance \textbf{$\sigma^2$}
+The PDF of a normal distribution is given by the \textbf{Gaussian} function:
+\begin{equation}
+    \prob{x} = (2\pi\sigma^2)^{-\frac{1}{2}} \exp\{{-\frac{1}{2}\frac{(x-\mu)^2}{\sigma^2}}\}
+\end{equation}
+
+Normal distribtuions are frequently abbreviated as $\normal{x}{\mu, \sigma^2}$. However this notation assumes that $x$ is a scalar value.
+Often $x$ will be a multi-dimensional vector. Normal distributions over vectors are called multivariate. Multivariate normal distribtuions are characterized by density functions of the following form:
+
+\begin{equation}
+  \prob{x} = \det{(2\pi\Sigma)^{-\frac{1}{2}}} exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\}
+  \label{eq:Multivariate normal distribution PDF}
+\end{equation}
+
+ Here $\mu$ is the mean vector. $\Sigma$ is a positive semidefinite and symmetric matrix called the \textbf{covariance matrix}. Just as discrete probability distribtuions always sum up to 1, a PDF always integrates to 1:
+ \begin{equation}
+   \int{\prob{x}dx} = 1
+  \label{eq:PDF integral}
+ \end{equation}
+
+ However unlike a discrete probability, the value of a PDF is not uppder-bounded by 1.
+\begin{definition}[Joint and Conditional Probability]
+Joint and conditional probabilities are defined as:
+\begin{align}
+    \prob{x, z} &= \prob{X=x, Z=z} \\
+    \prob{x|z} &= \frac{\prob{x,z}}{\prob{z}}
+    \intertext{When $X$ and $Z$ are independent:}
+    \prob{x, z} &= \prob{x}\prob{z} \\
+    \prob{x|z} &= \frac{\prob{x}\prob{z}}{\prob{z}} = \prob{x}
+\end{align}
+\end{definition}
+
+In other words, if X and Z are independent, Z tells us nothing about the value of X. There is no advantage of knowing the value of Z if we are interested in X.
+Independence and its generalizations are known as conditional independence.
+An interesting fact, which follows from the definition of conditional probaility and the axioms of probability measures, is often referred to as Theorem of total probability:
+\begin{align}
+  \prob{x} &= \sum_{z}{\prob{x \mid z}\prob{z}}  \hspace{5mm}  \text{(discrete case)}\\
+  \prob{x} &= \int{\prob{x \mid z}\prob{z} dz} \hspace{8.5mm} \text{(continuous case)}
+\end{align}
+
+If $\prob{x \mid z}$ or $\prob{z}$ are zero, we define the product of $\prob{x \mid z}\prob{z}$ to be zero, regardless of the value of the remaining factor.
+
+\subsection{Bayes Rule}
+Equally important is Bayes rule, which relates a conditional of type $\prob{x \mid z}$ to its "inverse", $\prob{z \mid x}$.
+The rule, as stated here, required $\prob{z}>0$:
+\begin{align}
+  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\sum_{x'}{\prob{z \mid x'}\prob{x'}}} \\
+  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\int_{x'}{\prob{z \mid x'}\prob{x'}dx'}}
+\end{align}
+
+Bayes rule plays a predominant role in probabilistic robotics (and probabilistic inference in general). If $x$ is a quantity that we would like to infer from z, the probability $\prob{x}$ will be referred to as prior probability distribution, and z is called the data (e.g., a sensor measurement).
+The distribution $\prob{x}$ summarizes the knowledge we have regarding $X$ prior to incorporating the data z. The probability $\prob{x \mid z}$ is called the \textbf{posterior probability distribution} over X.
+
+\vspace{2mm}
+Bayes rule provides a convenient way to compute a posterior $p(x \mid z)$ using the “inverse” conditional probability $p(z \mid x)$ along with the prior probability $p(x)$.
+In other words, if we are interested in inferring a quantity $x$ from sensor data $z$, \textbf{Bayes rule} allows us to do so through the inverse probability, which specifies the probability of data $z$ assuming that $x$ was the case.
+
+\newpage
+In robotics, the probability $p(z \mid x)$ is often coined generative model, since it describes at some level of abstraction how state variables $X$ can cause sensor measurements $Z$.
+Important observation is that the the denominator of Bayes rule, $p(z)$ does not depend on $x$. For this reason, we can write the Bayes rule as:
+
+\begin{equation}
+  p(x \mid z) = \eta p(z \mid x)p(x) \\
+  \label{eq:Bayes Rule with normalization factor}
+\end{equation}
+
+We can also condition any of the rules discussed so far on arbitrary random variables, such as the variable $Y$. For example conditioning Bayes rule on $Y=y$:
+
+\begin{equation}
+  p(x \mid z, y) = \frac{p(z \mid x,y)p(x | y)}{p(z | y)} \\
+\end{equation}
+
+\newpage
+
+\section{Bayes Filter}
+
+\subsection{Probabilistic Generative Laws}
+
+The evolution of state and measurements is governed by probabilistic laws.
+In general, the state $x_t$ is generated stochastically from the state $x_{t-1}$.
+At first glance, the emergence of state $x_t$ might be conditioned on all past states, measurements, and controls.
+\begin{equation}
+  p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) \\
+  \label{eq:State probabilibility distribution}
+\end{equation}
+
+If the state $x$ is complete then it is a sufficient summary of all that happened in previous time steps.
+In particular, $x_{t-1}$ is a sufficient statistic of all previous controls and measurements up to this point in time, that is $u_{1:t-1}$ and $z_{1:t-1}$.
+In probabilistic terms, this insight is expressed by the following equality:
+
+\begin{equation}
+  p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) = p(x_t \mid x_{t-1}, u_t) \\
+\end{equation}
+
+The property expressed by this equality is an example of \textbf{conditional independence}.
+It states that certain variables are independent of others if one knows the values of a third group of variables, the conditioning variables.
+
+One might also want to model the process by which measurements are being generated.
+Again if $x_t$ is complete, we have an important conditional independence:
+
+\begin{equation}
+  p(z_t \mid x_{0:t}, z_{1:t-1}, u_{1:t}) = p(z_t \mid x_{t}) \\
+\end{equation}
+
+In other words, the state $x_t$ is sufficient to predict the (potentially noisy) measurement $z_t$.
+Knowledge of any other variable, such as past measurements, controls, or even past states, is irrelevant if $x_t$ is complete.
+
+\begin{figure}[H]
+  \centering
+	\includegraphics[width=0.5\textwidth]{images/bayesian_network.png}
+	\caption{Dynamic Bayes network}
+\end{figure}
+
+The probability $p(x_t \mid x_{t-1}, u_t)$ is the \textbf{state transition probability} as it specifies how environmental state evolves over time as a function or robot control $u_t$.
+Robot environments are stochastic, which is reflected by the fact that we use a probability distribution over a deterministic funciton.
+
+\vspace{2mm}
+
+The probability $p(z_t \mid x_t)$ is calle the \textbf{measurement probability}, and it specifies the probabilistic law according to which measurements $z$ are generated from the state $x_t$.
+It is appropriate to think of measurements as noisy projections of the state.
+
+\vspace{2mm}
+
+To recap, the state at time $t$ is stochastically dependent on the state at time $t-1$ and the control $u_t$, the measurement $z_t$ depends stochastically on the state at time $t$.
+SUch a temporal generative model is also known as hidden Markov model (HMM) or dynamic Bayes network (DBN).
+
+\vspace{2mm}
+
+\begin{definition}[Belief]
+  A \textbf{belief} reflects the robot's internal knowledge about the state of the environment, since we cannot measure state directly.
+  A \textbf{belief distribution} assigns a probability (or density value) to each possible hypothesis with regards to the true state.
+  We denote belief over a state variable $x_t$ by $bel(x_t)$:
+
+\begin{equation}
+    bel(\state_t) = p(\state_t \mid \obs_{1:t}, \control_{1:t})
+\end{equation}
+\end{definition}
+
+However, the belief is taken after incorporating the measurement $z_t$.
+It would be useful to calculate a posterior before incorporating $z_t$, just after executing the control $u_t$.
+
+\begin{definition}[Prediction]
+The \textbf{prediction} at time $t$ represents our knowledge about the state before applying the very last measurement.
+
+\begin{equation}
+  \bar{bel}(\state_{t}) = p(\state_{t} \mid \obs_{1:t-1}, \control_{1:t})
+\end{equation}
+\end{definition}
+
+\subsection{The Bayes Filter Algorithm}
+
+The \textbf{Bayes Filter} consists of two essential steps:
+
+First is the \textbf{control update}, or prediction, where the we processes the control $u_t$ by calculating a belief over the state $x_t$ based on the prior belief over state $x_{t-1}$ and control $u_t$.
+
+Next is the \textbf{measurement update}, where the filter multiplies the belief $\bar{bel}(x_t)$ by the probability that the measurement $z_t$ may have been observed, and it does so for each hypothetical state $x_t$, then normalizes the results.
+
+\vspace{2mm}
+
+\begin{algorithm}[H]
+\caption{Bayes Filter}
+\KwInput{$bel(\state_{t-1})$, control $\control_t$, measurement $\obs_t$}
+\KwOutput{$bel(\state_t)$}
+
+\BlankLine
+\tcp{Prediction Step}
+\For{all $\state_t$}{
+    $\overline{bel}(\state_t) = \int p(\state_t \mid \control_t, \state_{t-1}) \cdot bel(\state_{t-1}) \, d\state_{t-1}$\;
+}
+
+\BlankLine
+\tcp{Correction Step}
+\For{all $\state_t$}{
+    $bel(\state_t) = \eta \cdot p(\obs_t \mid \state_t) \cdot \overline{bel}(\state_t)$\;
+}
+
+\BlankLine
+\Return{$bel(\state_t)$}
+\end{algorithm}
+
+\vspace{2mm}
+
+To compute the posterior belief recursively, the algorithm requires an initial belief $bel(x_0)$ at time $t=0$ as boundary condition.
+
+\subsection{Markovian Assumption}
+
+The \textbf{Markov assumption} postulates that past and future data are independent if one knows the current state $x_t$
+
+\begin{definition}[Markov Assumption]
+\begin{equation}
+    bel(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \obs_{t}, \control_{t})
+\end{equation}
+\indent Prediction stems from last known state
+\begin{equation}
+    \bar{bel}(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \control_{t})
+\end{equation}
+\end{definition}
+
+

@@ -1,0 +1,110 @@
+\section{Practice Problem 1:}
+\begin{itemize}
+  \item On each visit the robot spews out one candy with probability $0.6$, two candies with probability 0.3 or three with probability 0.1
+  \item Let Q(U=u) be the probability distribution function for the robot spewing the candy.
+  \begin{itemize}
+    \item Q(u=1) = 0.6
+    \item Q(u=2) = 0.3
+    \item Q(u=3) = 0.1
+  \end{itemize}
+  \item To refill the candy compartment, it can estimate tan accurate count with probability 0.6 or it can be off by one in either direction with probability
+  \item Let P(X=x) to be the probability distribution function for the robots measurement of how many candy its holding.
+  \begin{itemize}
+    \item P(x=x) = 0.6
+    \item P(x=x+1) = 0.2
+    \item P(x=x-1) = 0.2
+  \end{itemize}
+\end{itemize}
+
+\textbf{We start with $50$ candies, After the first visit, sensor measured $48$.
+After the second visit, the sensor measured $48$ again. Calculate the belief of the number of candy in the comporatement after the first and the second visit.
+}
+
+\begin{align}
+  p(x \mid z) &= \frac{p(z \mid x)p(x)}{p(z)} \\
+  p(x) &= \frac{p(x \mid z)p(z)}{p(z | x)} \\
+  \label{eq:Bayes Rule}
+\end{align}
+
+\begin{align}
+  P(u = 1) &= 0.6 \\
+  P(u = 2) &= 0.3 \\
+  P(u = 3) &= 0.1 \\
+  \label{eq: Action Probability Distributions}
+\end{align}
+
+Model the state as:
+\begin{equation}
+  x(t+1) = x(t) - u(t) \\
+  \label{eq:State Model}
+\end{equation}
+
+Initially, we have a belief of the number of candy in the comporatement to be: $bel(x_t=50) = 1.0$
+At the first visit, the robot takes an action. Now, we have:
+\begin{align*}
+  \bar{bel}(x_t=49) &= 0.6 \\
+  \bar{bel}(x_t=48) &= 0.3 \\
+  \bar{bel}(x_t=47) &= 0.1 \\
+\end{align*}
+
+Here we get a measurement from our sensor, and we measure $z = 48$. But since our measurement model has uncertainty, this belief might be wrong.
+We need to calculate the bayes update to get a posterior. So we can do:
+\begin{equation}
+  P(z=48 \mid x_t) = \eta P(z=48 \mid x=49)
+  P(z=48 \mid x=48) = 0.6
+  P(z=48 \mid x=47) = 0.2
+  \label{eq:}
+\end{equation}
+
+% # we get measurement 48
+%
+% # if we had u=1, x=49: 0.6 * 0.2 = 0.12
+% # if we had u=2, x=48: 0.3 * 0.6 = 0.18
+% # if we had u=3, x=47: 0.1 * 0.2 = 0.02
+% unnormalized_posterior = np.array([[0.12], [0.18], [0.02]])
+% posterior = unnormalized_posterior / sum(unnormalized_posterior)
+%
+% # [0.375  0.5625 0.0625] means
+% # [49 48 47]
+%
+% """
+% if we had x_t-1 = 49, u=1: x=48 0.375 * 0.6
+%                       u=2: x=47 0.375 * 0.3
+%                       u=3: x=46 0.375 * 0.1
+%
+% if we had x_t-1 = 48, u=1: x=47 0.5625 * 0.6
+%                       u=2: x=46 0.5625 * 0.3
+%                       u=3: x=45 0.5625 * 0.1
+%
+% if we had x_t-1 = 47, u=1: x=46 0.0625 * 0.6
+%                       u=2: x=45 0.0625 * 0.3
+%                       u=3: x=44 0.0625 * 0.1
+%
+%     we got measurement z=48 again
+%
+% Which means we could have gotten P(z=48 | x=48): (0.375 * 0.6) * 0.6
+%                                  P(z=48 | x=47): (0.375 * 0.3) * 0.2 + (0.5625 * 0.6) * 0.2
+%
+% """
+% # Take action
+% bel_48 = 0.6 * 0.375
+% bel_47 = 0.375 * 0.3 + 0.5626 * 0.6
+% bel_46 = 0.375 * 0.1 + 0.5625 * 0.3 + 0.0625 * 0.6
+% bel_45 = 0.5625 * 0.1 + 0.0625 * 0.3
+% bel_44 = 0.0625 * 0.1
+% bel_bar = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
+% unnormalized_posterior = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
+%
+% measurement_model = np.array([0.6, 0.2, 0.0, 0.0, 0.0])
+% bel_bar = np.array([0.225, 0.450, 0.244, 0.075, 0.006])
+% unnormalized_posterior = bel_bar * measurement_model
+% posterior = unnormalized_posterior / sum(unnormalized_posterior)
+%
+% print(f"{posterior}")
+% # bel = [z=x+1, z=x, z=x-1]
+% measurement_mdl = np.array([[0.2, 0.6, 0.2]])
+%
+% After visit 1 (z=48): bel(x(1)) = [0.375, 0.5625, 0.0625] for x ∈ {49, 48, 47}
+% After visit 2 (z=48): bel(x(2)) = [0.6, 0.4, 0.0, 0.0, 0.0] for x ∈ {48, 47, 46, 45, 44}
+
+

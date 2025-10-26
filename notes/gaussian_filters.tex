@@ -1,0 +1,445 @@
+\section{Gaussian Filters}
+
+\subsection{Introduction}
+
+Gaussian techniques all share the basic idea that beliefs are represented by multivariate normal distributions.
+
+\begin{equation}
+  \prob{x} = \det{(2\pi\Sigma)^{-\frac{1}{2}}} exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\}
+\end{equation}
+
+The density over the variable $x$ is characterized by two sets of parameters: The \textbf{mean} $\mu$ and \textbf{covariance} $\Sigma$.
+The mean is a vector that possess the same dimensionality as the state $x$.
+The covariance is a quadratic matrix that is symmetric and positive-semidefinite; its dimension is the dimensionality of the state $x$ squared.
+
+\vspace{2mm}
+
+The commitment to represent the posterior by a Gaussian has important ramifications.
+Most importantly, Gaussians are unimodal; they possess a single maximum.
+Such a posterior is characteristic for problems in which the posterior is focused around the true state with a small margin of uncertainty.
+Gaussian posteriors are a poor match for many global estimation problems in which many distinct hypotheses exists, each of which forms its own mode in the posterior.
+
+
+\subsection{The Kalman Filter}
+
+\subsubsection{Linear Gaussian Systems}
+
+The Kalman filter implements belief computation for continuous states.
+It is not applicable to discrete or hybrid state spaces.
+
+The Kalman filter represents beliefs by the moments parameterization: At time $t$, the belief is represented by the mean $\mu_t$ and the covariance $\Sigma_t$.
+Posteriors are Gaussian if the following three properties hold, in addition to the Markov assumption of the Bayes filter:
+
+\begin{enumerate}
+  \item The state transition probability $p(x_t \mid x_{t-1}, u_t)$ must be a linear function in its arguments with added Gaussian noise. This is expressed by the following equation:
+    \begin{equation}
+      x_t = A_t x_{t-1} + B_t u_t + \epsilon_t \\
+    \end{equation}
+    By multiplying the state and control vector with matrices $A_t$ and $B_t$, respectively, the state transition function becomes linear in its arguments.
+    Thus, Kalman filters assume linear system dynamics.
+
+    The random variable $\epsilon_t$ is a Gaussian random vector that models the uncertainty introduced by the state transition.
+    It is of the same dimension as the state vector, its mean is zero and its covariance will be denoted $R_t$.
+
+    The mean of the posterior state is given by $A_t x_{t-1} + B_t u_t$ and the covariance by $R_t$
+    \begin{equation}
+      p(x_t \mid x_{t-1}, u_t) = \det(2\pi R_t)^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (x_t - A_t x_{t-1} - B_t u_t)^T R_t^{-1} (z_t -A_t x_{t-1} - B_t u_t)\}} \\
+    \end{equation}
+
+  \item The measurement probability $p(z_t \mid x_t)$ must also be linear in its arguments, with added Gaussian noise:
+    \begin{equation}
+      z_t = C_t x_t + \delta_t \\
+    \end{equation}
+
+    Here $C_t$ is a matrix of size $k \times n$, where $k$ is the dimenstion of the measurement vector $z_t$.
+    The vector $\delta_t$ describes the measurement noise, the distribution of $\delta_t$ is a multivariate Gaussian with zero mean and covariance $Q_t$.
+    The measurement probability is thus given by the following multivariate normal distribution:
+    \begin{equation}
+      p(z_t \mid x_t) = \det(2\pi Q_t)^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (z_t -C_t x_t)^T Q_t^{-1} (z_t - C_t x_t)\}} \\
+    \end{equation}
+
+  \item The initial belief $bel(x_0)$ must be normally distributed. The mean of this belief is denoted by $\mu_0$ and covariance $\Sigma_0$.
+    \begin{equation}
+      bel(x_0) = p(x_0) = \det(2\pi \Sigma) ^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (x_0 - \mu_0)^T \Sigma_t^{-1} (x_0 - \mu_0)\}} \\
+    \end{equation}
+
+\end{enumerate}
+
+These three assumptions are sufficient to ensure that the posterior $bel(x_t)$ is always a Gaussian, for any point in time $t$.
+
+\subsubsection{The Kalman Filter Algorithm}
+
+\begin{algorithm}[H]
+\caption{Kalman Filter}
+\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
+\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
+
+\BlankLine
+\tcp{Prediction Step}
+$\bar{\mu}_t = A_t \mu_{t-1} + B_t u_t$\;
+$\bar{\Sigma}_t = A_t \Sigma_{t-1} A_t^T + R_t$\;
+
+\BlankLine
+\tcp{Kalman Gain}
+$K_t = \bar{\Sigma}_t C_t^T (C_t \bar{\Sigma}_t C_t^T + Q_t)^{-1}$\;
+
+\BlankLine
+\tcp{Measurement update Step}
+$\mu_t = \bar{\mu}_t + K_t (z_t - C_t \bar{\mu}_t)$\;
+$\Sigma_t = (I - K_tC_t)\bar{\Sigma}_t$\;
+
+\BlankLine
+\Return{$\mu_{t}$, $\Sigma_{t}$}
+\end{algorithm}
+
+\vspace{2mm}
+
+The Kalman filter alternates a measurement update step in which sensor data is integrated into the present belief with a prediction step (or control update step), which modifies the belief in accordance to an action.
+The measurement update step decreases and the prediction step increases uncertainty in the robot's belief.
+
+\subsection{The Extended Kalman Filter}
+
+\subsubsection{Reason to Linearize}
+
+The assumptions that observations are linear functions of the state and that the next state is a linear function of the previous state are crucial for the correctness of the Kalman filter.
+The efficiency of the Kalman filter is then due to the fact that the parameters of resulting Gaussian can be computed in closed form.
+Unfortunately, state transitions and measurements are rarely linear in practice.
+
+\vspace{2mm}
+
+The \textbf{Extended Kalman filter} (EKF) relaxes one of these assumptions: the linearity assumption.
+\begin{align}
+  x_t &= g(x_{t-1}, u_t) + \epsilon_t \\
+  z_t &= h(x_t) + \delta_t
+\end{align}
+
+With arbitrary functions $g$ and $h$, the belief is no longer a Gaussian.
+In fact, performing the belief update exactly is usually impossible for nonlinear functions, and the Bayes filter does not possess a closed-form solution.
+
+The EKF calculates a Gaussian approximation to the true belief.
+Accordingly, EKFs represent the belief at time t by a mean and a covariance, but it differs from KF in that this belief is only approximate, not exact.
+However, since these statistics cannot be computed in closed form, the EKF has to resort to an additional approximation.
+
+\subsubsection{Linearization Via Taylor Expansion}
+
+The key idea underlying the EKF approximation is called linearization.
+Linearization approximates the nonlinear funtion $g$ by a linear function that is tangent to $g$ at the mean of the Gaussian.
+Projecting the Gaussian through this linear approximation results in a Gaussian density.
+
+\vspace{2mm}
+
+Once $g$ is linearized, the mechanics of the EKF's belief propagation are equivalent to those of the Kalman filter.
+This technique is also applied to the multiplication of Gaussians when a measurement function $h$ is involved.
+Again, the EKF approximates $h$ by a linear function tangent to $h$, thereby retaining the Gaussian nature of the posterior belief.
+
+\newpage
+EKFs utilize a method called (first order) \textbf{Taylor expansion}.
+Taylor expansion constructs a linear approximation to a function $g$ from $g$'s value and slope.
+The slope is given by the partial derivative:
+
+\begin{equation}
+  g'(u_t, x_{t-1}) := \frac{\partial{g(u_t, x{t-1})}}{\partial{x_{t-1}}} \\
+\end{equation}
+
+\subsubsection{The EKF Algorithm}
+
+\begin{algorithm}[H]
+\caption{Extended Kalman Filter}
+\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
+\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
+
+\BlankLine
+\tcp{Prediction Step}
+$\bar{\mu}_t = g(u_t, \mu_{t-1})$\;
+$\bar{\Sigma}_t = G_t \Sigma_{t-1} G_t^T + R_t$\;
+
+\BlankLine
+\tcp{Kalman Gain}
+$K_t = \bar{\Sigma}_t H_t^T (H_t \bar{\Sigma}_t H_t^T + Q_t)^{-1}$\;
+
+\BlankLine
+\tcp{Measurement update Step}
+$\mu_t = \bar{\mu}_t + K_t (z_t -  h(\bar{\mu}_t)$\;
+$\Sigma_t = (I - K_t H_t)\bar{\Sigma}_t$;\
+
+\BlankLine
+\Return{$\mu_{t}$, $\Sigma_{t}$}
+\end{algorithm}
+
+\vspace{2mm}
+
+The linear predictions in Kalman filters are replaced by their nonlinear generalizations in EKFs.
+EKFs use \textbf{Jacobians} $G_t$ and $H_t$ instead of linear system matrices.
+
+The goodness of the linear approximation applied by the EKF depends on two main factors:
+The degree of uncertainty and the degree of local nonlinearity of the functions that are being approximated.
+Higher uncertainty typically results in less accurate estimates of the mean and covariance of the resulting random variable.
+Higher nonlinearities result in larger approximation errors.
+
+\subsubsection{Mixture of Gaussians}
+
+Sometimes, one might want to pursue multiple distinct hypotheses.
+A robot might have two distinct hypotheses as to where it is, but the arithmetic mean of these hypotheses ins not a likely contender.
+Such situations require multi-modal representations for the posterior belief.
+
+EKFs are incapable of representing such mutlimodal beliefs, so a common extension of EKF is to represent posteriors using mixtures, or sums, of Gaussians.
+A mixture of Gaussians may be of form
+
+\begin{equation}
+  bel(x_t) = \frac{1}{\sum_{l}{\psi_{t,l}}} \det{(2\pi \Sigma_{t,l})}^{-\frac{1}{2}} \exp{ \{ -\frac{1}{2} (x_t - \mu_{t,l})^T \Sigma_{t,l} (x_t - \mu_{t,l}) \}} \\
+  \label{eq:Mixture of Gaussians}
+\end{equation}
+
+Here $\psi_{t,l}$ are mixture parameters with $\psi_{t,l} \geq 0$.
+These parameters serve as weights of the mixture components.
+They are estimated from the likelihoods of the observations conditioned on the corresponding Gaussians.
+
+\vspace{2mm}
+
+To summarize, if the nonlinear functions are approximately linear at the mean of the estimate, then the EKF approximation may generally be a good
+one, and EKFs may approximate the posterior belief with sufficient accuracy.
+In practice, when applying EKFs it is therefore important to keep the uncertainty of the state estimate small.
+
+\newpage
+
+\subsection{The Unscented Kalman Filter}
+
+The Taylor series expansion applied by the EKF is one way to linearize the transformation of a Gaussian.
+Two other approaches have often been found to yield superior results.
+
+\vspace{2mm}
+
+One is known as moments matching (and the resulting filter is known as \textbf{assumed density filter}, ADF), in which the linearization is calculated in a way that preserves the true mean and the true covariance of the posterior distribution.
+Another is applied by the \textbf{unscented kalman filter}, UKF, which performs stochastic linearization through the use of a weighted statistical linear regression process.
+
+\subsubsection{Linearization via the Unscented Transform}
+
+Instead of approximating the function $g$ by a Taylor series expansion, the UKF deterministically extracts \textbf{sigma points} from the Gaussian and passes these through $g$.
+In the general case, these sigma points are located at the mean and symmetrically along the main axes of the covariance (two per dimension).
+
+For an n-dimensional Gaussian with mean $\mu$ and covariance $\Sigma$, the resulting $2n+1$ sigma points $\mathcal{X}^{ [i] }$ are chosen according to the following rule:
+\begin{align}
+  \mathcal{X}^{ [0] } &= \mu \\
+  \mathcal{X}^{ [i] } &= \mu + (\sqrt{(n + \lambda) \Sigma})_{i} \hspace{9mm} \text{for } i=1,...,n \\
+  \mathcal{X}^{ [i] } &= \mu - (\sqrt{(n + \lambda) \Sigma})_{i-n} \hspace{5mm} \text{for } i=n+1,...,2n
+\end{align}
+
+Here $\lambda = \alpha^2 (n+ \kappa)-n$, with $\alpha, \kappa$ being scaling parameters that determine how far the sigma points are spread from the mean.
+Each sigma point has two weights associated with it.
+One weight $w_m^{ [i] }$ is used when computing the mean, the other weight $w_c^{ [i] }$ is used when recovering the covariance of the Gaussian.
+
+\begin{align}
+  w_m^{ [0] } &= \frac{\lambda}{n+\lambda} \\
+  w_c^{ [0] } &= \frac{\lambda}{n+\lambda} + (1 - \alpha^2 + \beta) \\
+  w_i^{ [i] } &= w_c^{ [i] } = \frac{1}{2(n+\lambda)} \hspace{9mm} \text{for } i=1,...,2n.
+\end{align}
+
+The parameter $\beta$ can be chosen to encode additional (higher order) knowledge about the distribution underlying the Gaussian representation.
+If the distribution is an exact Gaussian, then $\beta=2$ is the optimal choice.
+
+The sigma points are then passed through the function $g$, thereby probing how $g$ changes the shape of the Gaussian.
+The parameters $(\mu' \Sigma')$ of the resulting Gaussian are extracted from the mapped sigma points $\mathcal{Y}^{ [i] }$ according to:
+
+\begin{align}
+  \mathcal{Y}^{ [i] } &= g(\mathcal{X}^{ [i] }) \\
+  \mu' &= \sum_{i=0}^{2n}{w_m^{ [i] } \mathcal{Y}^{ [i] }} \\
+  \Sigma' &= \sum_{i=0}^{2n}{w_c^{ [i] }(\mathcal{Y}^{ [i] } - \mu')(\mathcal{Y}^{ [i] } - \mu')^T}
+\end{align}
+
+The unscented transform is more accurate than the first order Taylor series expansion applied by the EKF.
+In fact, it can be shown that the unscented transform is accurate in the first two terms of the Taylor expansion, while EKF only captures the first order term.
+
+\subsubsection{The UKF Algorithm}
+
+\begin{algorithm}[H]
+\caption{Unscented Kalman Filter}
+\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
+\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
+
+\BlankLine
+$\mathcal{X}_{t-1} = (\mu_{t-1} \hspace{5mm} \mu_{t-1} + \gamma \sqrt{\Sigma_{t-1}} \hspace{5mm} \mu_{t-1}-\gamma \sqrt{\Sigma_{t-1}})$\;
+$\bar{\mathcal{X}}_t^* = g(u_t, \mathcal{X}_{t-1})$\;
+
+\BlankLine
+
+$\bar{\mu}_t = \sum_{i=0}^{2n}{w_m^{ [i] } \bar{\mathcal{X}}^{ *[i] }_t}$\;
+
+\BlankLine
+
+$\bar{\Sigma}_t = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{X}}_t^{ *[i] } - \bar{\mu}_t)(\bar{\mathcal{X}}_t^{ *[i] } - \bar{\mu}_t)^T} + R_t$\;
+
+\BlankLine
+
+$\bar{\mathcal{X}}_{t} = (\bar{\mu}_{t} \hspace{5mm} \bar{\mu}_{t} + \gamma \sqrt{\bar{\Sigma}_{t}} \hspace{5mm} \bar{\mu}_{t}-\gamma \sqrt{\bar{\Sigma}_{t}})$\;
+
+\BlankLine
+
+$\bar{\mathcal{Z}}_t = h(\bar{\mathcal{X}_t})$\;
+$\hat{z}_t = \sum_{i=0}^{2n} {w_m^{ [i] } \bar{\mathcal{Z}}}_t^{ [i] } $\;
+
+\BlankLine
+
+$S_t = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)^T} + Q_t$\;
+
+$\bar{\Sigma}_t^{x,z} = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{X}}_t^{ [i] } - \bar{\mu}_t)(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)^T}$\;
+
+\BlankLine
+
+$K_t = \bar{\Sigma_t^{x,z}} S_t^{-1}$\;
+
+\BlankLine
+
+$\mu_t = \bar{\mu}_t + K_t (z_t - \hat{z}_t)$\;
+$\Sigma_t = \bar{\Sigma}_t - K_t S_t K_t^T$\;
+
+\BlankLine
+\Return{$\mu_{t}$, $\Sigma_{t}$}
+\end{algorithm}
+
+\vspace{2mm}
+
+For purely linear systems, it can be shown that the estimates generated by the UKF are identical to those generated by the Kalman filter.
+For nonlinear systems the UKF produces equal or better results than the EKF, where the improvement over the EKF depends on teh nonlinearities and spread of the prior state uncertainty.
+
+Another advantage of the UKF is that it does not require the computation of Jacobians, thus is often referred to as the derivative-free filter.
+Unscented transform has some ressemblance to the sample based representation used by particle filters, a key difference however is that the sigma points are determined deterministically, while particle filters draw samples randomly.
+If the underlying distribution is approximately Gaussian, then the UFK representation is far more efficienct than the particle filter, however if the belief is highly non-gaussian, then the UKF representation performs poorly.
+
+\newpage
+
+\subsection{The Information Filter}
+
+The dual of the Kalman filter is the \textbf{information filter} or IF.
+Just like the KF, the information filter represents the belief by a Gaussian, thus the standard IF is subject to the same assumptions underlying the KF.
+
+However, instead of representing the Gaussians by their moments(mean, covariance), information filters represent Gaussians in their canonical parametrization, which is comprised of an information matrix and an information vector.
+The difference in parametrization leads to different update equations.
+
+\subsubsection{Canonical Parametrization}
+
+The canonical parametrization of a multivariate Gaussian is given by a matrix $ \Omega$ and a vector $\xi$
+\begin{align}
+  \Omega &= \Sigma^{-1} \\
+  \xi &= \Sigma^{-1} \mu \\
+\end{align}
+
+$\Omega$ is called the \textbf{information matrix} or sometimes the precision matrix.
+The vector $\xi$ is called the \textbf{information vector}.
+
+The canonical parametrization is often derived by multiplying out the exponent of a Gaussian.
+\begin{align}
+  p(x) &= \det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\} \\
+  p(x) &= \det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu -\frac{1}{2} \mu^T\Sigma^{-1}\mu}\} \\
+           &= \underbrace{\det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2} \mu^T\Sigma^{-1}\mu})\}}_{\text{constant}} \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu}\} \\
+           &= \eta \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu}\} \\
+        p(x)   &= \eta \exp{\{-\frac{1}{2} x^T\Omega x + x^T\xi}\} \\
+\end{align}
+
+The term labeled "constant" does not depend on the target variable $x$, hence it can be subsumed into the normalizer $\eta$.
+In many ways the canonical parametrization is more elegant than the moments parameterization.
+
+In particular the negative logarithm of the Gaussian is a quadratic function in x, with the canonical parameters:
+
+\begin{equation}
+  -\log{p(x)} = \text{const. } + \frac{1}{2} x^T \Omega x - x^T \xi \\
+  \label{eq:Negative logarithm of gaussian in canonical parametrization}
+\end{equation}
+
+Here const is a constant. Negative logarithms of probabilities do not normalize to 1.
+The negative logarithm of our distribution $p(x)$ is quadratic in $x$ with the quadratic term parameterized by $\Omega$ and the linear term by $\xi$.
+
+In fact, for Gaussians, $\Omega$ must be positive semidefinite , hence $-\log{p(x)}$ is a quadratic distance function with mean $\mu=\Omega^{-1}\xi$.
+This is easily verified by setting the first derivative to zero:
+\begin{equation}
+  \frac{\partial{ [-\log{p(x)}] }}{\partial{x}} = 0 \Longleftrightarrow \Omega x - \xi = 0 \Longleftrightarrow x = \Omega^{-1}\xi\\
+  \label{eq:First derivative of negative log og Gaussian in canonical form}
+\end{equation}
+
+The matrix $\Omega$ determines the rate at which the distance function increases in the different dimensions of the variable x.
+A quadratic distance that is weighted by a matrix $\Omega$ is called a \textbf{Mahalanobis distance}.
+
+\subsubsection{The Information Filter Algorithm}
+
+\begin{algorithm}[H]
+\caption{Information Filter}
+\KwInput{$\xi_{t-1}$, $\Omega_{t-1}$, $\control_t$, $\obs_t$}
+\KwOutput{$\xi_{t}$, $\Omega_{t}$}
+
+\BlankLine
+\tcp{Prediction Step}
+$\bar{\Omega}_t = (A_t \Omega_{t-1}^{-1} A_t^T + R_t)^{-1}$\;
+
+$\bar{\xi}_t = \bar{\Omega}_t (A_t \Omega_{t-1}^{-1}\xi_{t-1} + B_t u_t)^{-1}$\;
+
+\BlankLine
+\tcp{Measurement Update Step}
+
+$\Omega_t = C_t^T Q_t^{-1} C_t + \bar{\Omega}_t$\;
+$\xi_t = C_t^T Q_t^{-1} z_t + \bar{\xi}_t $\;
+
+\BlankLine
+\Return{$\xi_{t}$, $\Omega_{t}$}
+\end{algorithm}
+
+\vspace{2mm}
+
+The update involves matrices $A_t, B_t, C_t, R_t, \text{and } Q_t$.
+The IF assumes that the state transition and measurement probabilities are governed by the following linear Gaussian equations:
+\begin{align}
+  x_t &= A_t x_{t-1} + B_t u_t + \epsilon_t \\
+  z_t &= C_t x_t + \delta_t
+\end{align}
+
+Just like the Kalman filter, the information filter is updated in two steps, a prediction step and a measurement update step.
+
+\subsubsection{The Extended Information Filter Algorithm}
+
+The \textbf{extended information filter} or EIF, extends the information filter to the nonlinear case.
+These update equations are largely analog to the linear information filter, with the functions g and h replacing the parameters of the linear model.
+Unfortunately, both $g$ and $h$ require a state as an input.
+This mandates the recovery of a state estimate $\mu$ from the canonical parameters.
+The necessity to recover the state estimate seems at odds with the desire to represent the filter using its canonical parameters.
+
+\begin{algorithm}[H]
+\caption{Extended Information Filter}
+\KwInput{$\xi_{t-1}$, $\Omega_{t-1}$, $\control_t$, $\obs_t$}
+\KwOutput{$\xi_{t}$, $\Omega_{t}$}
+
+\BlankLine
+\tcp{State recovery}
+$\mu_{t-1} = \Omega_{t-1}^{-1} \xi_{t-1} $\;
+
+\BlankLine
+
+\tcp{Prediction Step}
+
+$\bar{\Omega}_t = (G_t \Omega_{t-1}^{-1} G_t^T + R_t)^{-1}$\;
+
+$\bar{\xi}_t = \bar{\Omega}_t g(u_t, \mu_{t-1})$\;
+
+$\bar{\mu}_t = g(u_t, \mu_{t-1})$\;
+
+\BlankLine
+\tcp{Measurement Update Step}
+
+$\Omega_t = \bar{\Omega}_t + H_t^T Q_t^{-1} H_t $\;
+$\xi_t = \bar{\xi}_t + H_t^T Q_t^{-1} [z_t -h(\bar{\mu}_t + H_t \bar{\mu}_t) $\;
+
+\BlankLine
+\Return{$\xi_{t}$, $\Omega_{t}$}
+\end{algorithm}
+
+\vspace{2mm}
+
+\subsubsection{Practical Considerations}
+
+When applied to robotics problems, the IF possess several advantages over the Kalman filter.
+For example, representing global uncertainty is simple in the information filter: simply set $\Omega = 0$.
+When using moments, such global uncertainty amounts to a covariance of infinite magnitude.
+
+The IF tends to be numerically more stable than the Kalman filter in many if the applications.
+Information filter and several extensions enable a robot to integrate information without immediately resolving it into probabilities.
+For large problems, KF induces severe computational probelems, since any new piece of information requires propagaton through a large system of variables.
+The information filter, with appropriate modification, can side-step this issue by simply adding the new information locally into the system.
+
+\newpage

@@ -73,6 +73,9 @@
 \newcommand{\normal}[2]{\mathcal{N}\left(#1; #2\right)}
 \newcommand{\uniform}[2]{\mathcal{U}\left(#1; #2\right)}
 
+% Shortcuts
+\newcommand{\pcond}[2]{p(#1 \mid #2)}
+
 % State space notation
 \newcommand{\state}{\bm{x}}
 \newcommand{\obs}{\bm{z}}
@@ -92,802 +95,95 @@
 \maketitle
 \tableofcontents
 \newpage
-
-\section{Basic Concepts in Probability}
-
-\subsection{Fundamental Principle}
-
-In probabilistic robotics, quantities such as sensor measurements, controls, and the states of a robot and its environment are all modeled as random variables.
-\textbf{Random variables} can take on multiple values, and they do so according to specific probabilistic laws.
-Probabilistic inference is the process of claculating these laws for random variables that are derived from other random variables and observed data.
-\begin{itemize}
-  \item No sensor can measure the signal with full accuracy and no actutation results in perfect accurate motion
-  \item Sensing and motion are \textbf{uncertain} since signals are \textbf{random variables}
-\end{itemize}
-
-\subsubsection{Random Events}
-
-\begin{itemize}
-  \item Start with an event set
-  \item Construct a set of all subsets of events set
-  \item These are all events that can happen in our "world"
-  \item Example Rolling a Dice: rolled 4, rolled an odd number
-\end{itemize}
-
-\begin{definition}[Probability]
-  Probability is a function that maps \textbf{A} to interval $[0,1]$
-  \begin{align}
-    \prob{\Omega} &= 1 \\
-    \prob{\emptyset} &= 0 \\
-    \textbf{A}_i \cap \textbf{A}_j &= \emptyset, \forall i,j \Rightarrow \prob{\bigcup_{i}A_i} = \sum_{i}{\prob{A_i}}
-  \end{align}
-\end{definition}
-
-\subsection{Probability Definitions}
-Let $X$ denote a random variable and $x$ denote a specific value that $X$ might assume.
-A standard example of a random is coin flip, where X can take on the values heads or tails.
-If the space of all values that $X$ can take on is discrete, we write:
-\begin{align}
-  \prob{X=x} \\
-  \sum_{x}{\prob{X=x}} &= 1
-\end{align}
-
-Probabilities are alwas non-negative, that is $\prob{X=x} \geq 0$.
-Continuous spaces are characterized by random variables that can take on a continuum of values.
-Unless explicitly stated, we assume that all continuous random variables possess \textbf{probability density functions} (PDFs).
-
-A common density function is that of one-dimensional \textbf{normal distribution} with mean \textbf{$\mu$} and variance \textbf{$\sigma^2$}
-The PDF of a normal distribution is given by the \textbf{Gaussian} function:
-\begin{equation}
-    \prob{x} = (2\pi\sigma^2)^{-\frac{1}{2}} \exp\{{-\frac{1}{2}\frac{(x-\mu)^2}{\sigma^2}}\}
-\end{equation}
-
-Normal distribtuions are frequently abbreviated as $\normal{x}{\mu, \sigma^2}$. However this notation assumes that $x$ is a scalar value.
-Often $x$ will be a multi-dimensional vector. Normal distributions over vectors are called multivariate. Multivariate normal distribtuions are characterized by density functions of the following form:
-
-\begin{equation}
-  \prob{x} = \det{(2\pi\Sigma)^{-\frac{1}{2}}} exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\}
-  \label{eq:Multivariate normal distribution PDF}
-\end{equation}
-
- Here $\mu$ is the mean vector. $\Sigma$ is a positive semidefinite and symmetric matrix called the \textbf{covariance matrix}. Just as discrete probability distribtuions always sum up to 1, a PDF always integrates to 1:
- \begin{equation}
-   \int{\prob{x}dx} = 1
-  \label{eq:PDF integral}
- \end{equation}
-
- However unlike a discrete probability, the value of a PDF is not uppder-bounded by 1.
-\begin{definition}[Joint and Conditional Probability]
-Joint and conditional probabilities are defined as:
-\begin{align}
-    \prob{x, z} &= \prob{X=x, Z=z} \\
-    \prob{x|z} &= \frac{\prob{x,z}}{\prob{z}}
-    \intertext{When $X$ and $Z$ are independent:}
-    \prob{x, z} &= \prob{x}\prob{z} \\
-    \prob{x|z} &= \frac{\prob{x}\prob{z}}{\prob{z}} = \prob{x}
-\end{align}
-\end{definition}
-
-In other words, if X and Z are independent, Z tells us nothing about the value of X. There is no advantage of knowing the value of Z if we are interested in X.
-Independence and its generalizations are known as conditional independence.
-An interesting fact, which follows from the definition of conditional probaility and the axioms of probability measures, is often referred to as Theorem of total probability:
-\begin{align}
-  \prob{x} &= \sum_{z}{\prob{x \mid z}\prob{z}}  \hspace{5mm}  \text{(discrete case)}\\
-  \prob{x} &= \int{\prob{x \mid z}\prob{z} dz} \hspace{8.5mm} \text{(continuous case)}
-\end{align}
-
-If $\prob{x \mid z}$ or $\prob{z}$ are zero, we define the product of $\prob{x \mid z}\prob{z}$ to be zero, regardless of the value of the remaining factor.
-
-\subsection{Bayes Rule}
-Equally important is Bayes rule, which relates a conditional of type $\prob{x \mid z}$ to its "inverse", $\prob{z \mid x}$.
-The rule, as stated here, required $\prob{z}>0$:
-\begin{align}
-  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\sum_{x'}{\prob{z \mid x'}\prob{x'}}} \\
-  \prob{x \mid z} &= \frac{\prob{z \mid x}\prob{x}}{\prob{z}} = \frac{\prob{z \mid x}\prob{x}}{\int_{x'}{\prob{z \mid x'}\prob{x'}dx'}}
-\end{align}
-
-Bayes rule plays a predominant role in probabilistic robotics (and probabilistic inference in general). If $x$ is a quantity that we would like to infer from z, the probability $\prob{x}$ will be referred to as prior probability distribution, and z is called the data (e.g., a sensor measurement).
-The distribution $\prob{x}$ summarizes the knowledge we have regarding $X$ prior to incorporating the data z. The probability $\prob{x \mid z}$ is called the \textbf{posterior probability distribution} over X.
-
-\vspace{2mm}
-Bayes rule provides a convenient way to compute a posterior $p(x \mid z)$ using the “inverse” conditional probability $p(z \mid x)$ along with the prior probability $p(x)$.
-In other words, if we are interested in inferring a quantity $x$ from sensor data $z$, \textbf{Bayes rule} allows us to do so through the inverse probability, which specifies the probability of data $z$ assuming that $x$ was the case.
-
+\input{bayes_filter.tex}
 \newpage
-In robotics, the probability $p(z \mid x)$ is often coined generative model, since it describes at some level of abstraction how state variables $X$ can cause sensor measurements $Z$.
-Important observation is that the the denominator of Bayes rule, $p(z)$ does not depend on $x$. For this reason, we can write the Bayes rule as:
-
-\begin{equation}
-  p(x \mid z) = \eta p(z \mid x)p(x) \\
-  \label{eq:Bayes Rule with normalization factor}
-\end{equation}
-
-We can also condition any of the rules discussed so far on arbitrary random variables, such as the variable $Y$. For example conditioning Bayes rule on $Y=y$:
-
-\begin{equation}
-  p(x \mid z, y) = \frac{p(z \mid x,y)p(x | y)}{p(z | y)} \\
-\end{equation}
-
+\input{gaussian_filters.tex}
 \newpage
+\input{transforms.tex}
+\newpage
+\section{Robot Motion}
 
-\section{Bayes Filter}
+\subsection{Kinematic Configuration}
+\textit{Kinematics} is the calculus of describing the effect of control actions oon the configuration of a robot. The configuration of a rigid mobile robot is commonly
+described by six variables, its three-dimensional Cartesian coordinates, and its three Euler angles (roll, pitch yaw) relative to an external coordinate frame.
+We will stick with mobile robots operating in planar environments, whose kinematic state is summarized by three variables, referred to as pose in this context.
 
-\subsection{Probabilistic Generative Laws}
+The pose of a mobile robot operating in a plane is comprised of two-dimensional planar coordinates relative to an external coordinate frame, along with its angular orientation.
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.3\textwidth]{images/robot_pose.png}
+  \end{center}
+  \caption{Robot pose, shown in global coordinate system}\label{fig:Robot Pose}
+\end{figure}
+The pose of the robot is described by the following vector $\begin{bsmallmatrix}x \\ y \\ \theta \end{bsmallmatrix}$.
 
-The evolution of state and measurements is governed by probabilistic laws.
-In general, the state $x_t$ is generated stochastically from the state $x_{t-1}$.
-At first glance, the emergence of state $x_t$ might be conditioned on all past states, measurements, and controls.
-\begin{equation}
-  p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) \\
-  \label{eq:State probabilibility distribution}
-\end{equation}
+The orientation of a robot is often called bearing or heading direction. The pose without orientation is called location.
+The pose and the locations of objects in the environment may constitute the kinematic state $x_t$ of the robot-environment system.
 
-If the state $x$ is complete then it is a sufficient summary of all that happened in previous time steps.
-In particular, $x_{t-1}$ is a sufficient statistic of all previous controls and measurements up to this point in time, that is $u_{1:t-1}$ and $z_{1:t-1}$.
-In probabilistic terms, this insight is expressed by the following equality:
+\subsection{Probabilistic Kinematics}
+The probabilistic kinematics model, or motion model plays the role of the state transition model in mobile robotics. This model is the familiar conditional density $\pcond{x_t}{u_t, x_{t-1}}$.
 
-\begin{equation}
-  p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) = p(x_t \mid x_{t-1}, u_t) \\
-\end{equation}
+Here $x_t \ \text{and } x_{t-1}$ are both robot poses, and $u_t$ is a motion command. This model describes the posterior distribution over kinematic states that a robot assumes when executing the motion command $u_t$ at $x_{t-1}$.
 
-The property expressed by this equality is an example of \textbf{conditional independence}.
-It states that certain variables are independent of others if one knows the values of a third group of variables, the conditioning variables.
+We will discuss in detail two specific probabilistic motion models, both for mobile robots operating in the plane.
+The first assumes taht the motion data $u_t$ specifies the velocity commands given to the robot's motors. Many commerical mobile robots are actuated by independent translational and rotational velocities.
+The second model assumes that one has access to odometry information.
 
-One might also want to model the process by which measurements are being generated.
-Again if $x_t$ is complete, we have an important conditional independence:
+In practice, odometry models tend to be more accurate than velocity models, for the simple reason that most commercial robots do not execute velocity commands with the level of accuracy that can be obtained by measuring the revolution of the robots wheels.
+However, odometry is only available after executing a motion command, hence it cannot be used for motion planning. Thus, odometry models are usualy applied for estimation, whereas velocity models are used for probabilistic motion planning.
 
-\begin{equation}
-  p(z_t \mid x_{0:t}, z_{1:t-1}, u_{1:t}) = p(z_t \mid x_{t}) \\
-\end{equation}
+\subsection{Velocity Motion Model}
+The velocity motion model assumes that we can control a robot through two velocities, a rotational and a translational velocity.
+We denote the translational velocity at time $t$ by $v_t$ and the rotational velocity by $\omega_t$. Hence we have $u_t = \begin{bsmallmatrix} v_t \\ \omega_t \end{bsmallmatrix}$.
+We arbitrarily postulate that the positive rotational velocities induce a counterclockwise rotation, and that positive translational velocities correspond to forward motion.
 
-In other words, the state $x_t$ is sufficient to predict the (potentially noisy) measurement $z_t$.
-Knowledge of any other variable, such as past measurements, controls, or even past states, is irrelevant if $x_t$ is complete.
+It is possible to create an algorithm for computing the probability $\pcond{x_t}{u_t, x_{t-1}}$ of being at $x_t$ after executing $u_t$ begining at state $x_{t-1}$, assuming that the control is carried out for the fixed duration $\Delta t$.
+The parameters $\alpha_1 \text{ to } \alpha_6$ are robot-specific motion error parameters.
+The algorithm first calculated the controls of an error-free robot; the meaning of the individual variables in this calculation will become
+more apparent below, when we derive it. These parameters are given by $\hat{v} \ \text{and } \hat{\omega}$.
 
 \begin{figure}[H]
-  \centering
-	\includegraphics[width=0.5\textwidth]{images/bayesian_network.png}
-	\caption{Dynamic Bayes network}
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{images/motion_model_velocity.png}
+  \end{center}
+  \caption{Algorithm for computing $\pcond{x_t}{u_t,x_{t-1}}$ based on velocity information} \label{fig:motion_model_velocity}
 \end{figure}
 
-The probability $p(x_t \mid x_{t-1}, u_t)$ is the \textbf{state transition probability} as it specifies how environmental state evolves over time as a function or robot control $u_t$.
-Robot environments are stochastic, which is reflected by the fact that we use a probability distribution over a deterministic funciton.
-
-\vspace{2mm}
-
-The probability $p(z_t \mid x_t)$ is calle the \textbf{measurement probability}, and it specifies the probabilistic law according to which measurements $z$ are generated from the state $x_t$.
-It is appropriate to think of measurements as noisy projections of the state.
-
-\vspace{2mm}
-
-To recap, the state at time $t$ is stochastically dependent on the state at time $t-1$ and the control $u_t$, the measurement $z_t$ depends stochastically on the state at time $t$.
-SUch a temporal generative model is also known as hidden Markov model (HMM) or dynamic Bayes network (DBN).
-
-\vspace{2mm}
-
-\begin{definition}[Belief]
-  A \textbf{belief} reflects the robot's internal knowledge about the state of the environment, since we cannot measure state directly.
-  A \textbf{belief distribution} assigns a probability (or density value) to each possible hypothesis with regards to the true state.
-  We denote belief over a state variable $x_t$ by $bel(x_t)$:
-
-\begin{equation}
-    bel(\state_t) = p(\state_t \mid \obs_{1:t}, \control_{1:t})
-\end{equation}
-\end{definition}
-
-However, the belief is taken after incorporating the measurement $z_t$.
-It would be useful to calculate a posterior before incorporating $z_t$, just after executing the control $u_t$.
-
-\begin{definition}[Prediction]
-The \textbf{prediction} at time $t$ represents our knowledge about the state before applying the very last measurement.
-
-\begin{equation}
-  \bar{bel}(\state_{t}) = p(\state_{t} \mid \obs_{1:t-1}, \control_{1:t})
-\end{equation}
-\end{definition}
-
-\subsection{The Bayes Filter Algorithm}
-
-The \textbf{Bayes Filter} consists of two essential steps:
-
-First is the \textbf{control update}, or prediction, where the we processes the control $u_t$ by calculating a belief over the state $x_t$ based on the prior belief over state $x_{t-1}$ and control $u_t$.
-
-Next is the \textbf{measurement update}, where the filter multiplies the belief $\bar{bel}(x_t)$ by the probability that the measurement $z_t$ may have been observed, and it does so for each hypothetical state $x_t$, then normalizes the results.
-
-\vspace{2mm}
-
-\begin{algorithm}[H]
-\caption{Bayes Filter}
-\KwInput{$bel(\state_{t-1})$, control $\control_t$, measurement $\obs_t$}
-\KwOutput{$bel(\state_t)$}
-
-\BlankLine
-\tcp{Prediction Step}
-\For{all $\state_t$}{
-    $\overline{bel}(\state_t) = \int p(\state_t \mid \control_t, \state_{t-1}) \cdot bel(\state_{t-1}) \, d\state_{t-1}$\;
-}
-
-\BlankLine
-\tcp{Correction Step}
-\For{all $\state_t$}{
-    $bel(\state_t) = \eta \cdot p(\obs_t \mid \state_t) \cdot \overline{bel}(\state_t)$\;
-}
-
-\BlankLine
-\Return{$bel(\state_t)$}
-\end{algorithm}
-
-\vspace{2mm}
-
-To compute the posterior belief recursively, the algorithm requires an initial belief $bel(x_0)$ at time $t=0$ as boundary condition.
-
-\subsection{Markovian Assumption}
-
-The \textbf{Markov assumption} postulates that past and future data are independent if one knows the current state $x_t$
-
-\begin{definition}[Markov Assumption]
-\begin{equation}
-    bel(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \obs_{t}, \control_{t})
-\end{equation}
-\indent Prediction stems from last known state
-\begin{equation}
-    \bar{bel}(\state_{t}) = p(\state_{t} \mid \state_{t-1}, \control_{t})
-\end{equation}
-\end{definition}
+The function $\mathbf{prob}(x,b^2)$ models the motion error. It computes the probability of its parameter x under a zero-centered random variable with variance $b^2$.
+Two possible implementations are shown in the next algorithm, for erro variables with normal distribution and triangular distribution, respectively.
 
 \newpage
 
-\section{Gaussian Filters}
+\subsection{Odometry Motion Model}
 
-\subsection{Introduction}
+The velocity motion model discussed thus far uses the robot's velocity to compute posteriors over poses. Alternatively, one might want to use the odometry measurements as the bassis for calculating the robot's motion over time.
+Odomtery is commonly obtained by integrating wheel encoder information; most commerical robots make such integrated pose estimation available in periodic time intervals.
+This leads to a second motion model: the odometry motion model. This model uses odometry measurements in lieu of controls.\\
 
-Gaussian techniques all share the basic idea that beliefs are represented by multivariate normal distributions.
+Practical experience suggests that odometry, while still erroneous, is usually more accurate then velocity.
+Both suffer from drift and slippage, but velocity additionaly suffers from mismatch between ethe actual motion controllers and its crude mathematical model.
+However, odometry is only available in retrospect, after the robot moded. This poses no problem for filter algorithms, however makes this information unusuable for accurate motion planning and control.
 
-\begin{equation}
-  \prob{x} = \det{(2\pi\Sigma)^{-\frac{1}{2}}} exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\}
-\end{equation}
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.3\textwidth]{images/odom_model.png}
+  \end{center}
+  \caption{Odometry Model: The robot motion in the time interval $(t-1, t]$ is approximated by a rotation $\delta_{rot1}$ followed by a translation $\delta_{trans}$ and a second rotation $\delta_{rot2}$. The turns and translations are noisy}\label{fig:Odomtery Model}
+\end{figure}
 
-The density over the variable $x$ is characterized by two sets of parameters: The \textbf{mean} $\mu$ and \textbf{covariance} $\Sigma$.
-The mean is a vector that possess the same dimensionality as the state $x$.
-The covariance is a quadratic matrix that is symmetric and positive-semidefinite; its dimension is the dimensionality of the state $x$ squared.
+\subsubsection{Closed Form Solution}
 
-\vspace{2mm}
+Technically, odometric information are sensor measurements, not controls. To model odometry as measurements, the resulting Bayes filter would have to include the actual velocity as state variables, which increases the dimension of the state space.
 
-The commitment to represent the posterior by a Gaussian has important ramifications.
-Most importantly, Gaussians are unimodal; they possess a single maximum.
-Such a posterior is characteristic for problems in which the posterior is focused around the true state with a small margin of uncertainty.
-Gaussian posteriors are a poor match for many global estimation problems in which many distinct hypotheses exists, each of which forms its own mode in the posterior.
-
-
-\subsection{The Kalman Filter}
-
-\subsubsection{Linear Gaussian Systems}
-
-The Kalman filter implements belief computation for continuous states.
-It is not applicable to discrete or hybrid state spaces.
-
-The Kalman filter represents beliefs by the moments parameterization: At time $t$, the belief is represented by the mean $\mu_t$ and the covariance $\Sigma_t$.
-Posteriors are Gaussian if the following three properties hold, in addition to the Markov assumption of the Bayes filter:
-
-\begin{enumerate}
-  \item The state transition probability $p(x_t \mid x_{t-1}, u_t)$ must be a linear function in its arguments with added Gaussian noise. This is expressed by the following equation:
-    \begin{equation}
-      x_t = A_t x_{t-1} + B_t u_t + \epsilon_t \\
-    \end{equation}
-    By multiplying the state and control vector with matrices $A_t$ and $B_t$, respectively, the state transition function becomes linear in its arguments.
-    Thus, Kalman filters assume linear system dynamics.
-
-    The random variable $\epsilon_t$ is a Gaussian random vector that models the uncertainty introduced by the state transition.
-    It is of the same dimension as the state vector, its mean is zero and its covariance will be denoted $R_t$.
-
-    The mean of the posterior state is given by $A_t x_{t-1} + B_t u_t$ and the covariance by $R_t$
-    \begin{equation}
-      p(x_t \mid x_{t-1}, u_t) = \det(2\pi R_t)^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (x_t - A_t x_{t-1} - B_t u_t)^T R_t^{-1} (z_t -A_t x_{t-1} - B_t u_t)\}} \\
-    \end{equation}
-
-  \item The measurement probability $p(z_t \mid x_t)$ must also be linear in its arguments, with added Gaussian noise:
-    \begin{equation}
-      z_t = C_t x_t + \delta_t \\
-    \end{equation}
-
-    Here $C_t$ is a matrix of size $k \times n$, where $k$ is the dimenstion of the measurement vector $z_t$.
-    The vector $\delta_t$ describes the measurement noise, the distribution of $\delta_t$ is a multivariate Gaussian with zero mean and covariance $Q_t$.
-    The measurement probability is thus given by the following multivariate normal distribution:
-    \begin{equation}
-      p(z_t \mid x_t) = \det(2\pi Q_t)^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (z_t -C_t x_t)^T Q_t^{-1} (z_t - C_t x_t)\}} \\
-    \end{equation}
-
-  \item The initial belief $bel(x_0)$ must be normally distributed. The mean of this belief is denoted by $\mu_0$ and covariance $\Sigma_0$.
-    \begin{equation}
-      bel(x_0) = p(x_0) = \det(2\pi \Sigma) ^{-\frac{1}{2}} exp{ \{-\frac{1}{2} (x_0 - \mu_0)^T \Sigma_t^{-1} (x_0 - \mu_0)\}} \\
-    \end{equation}
-
-\end{enumerate}
-
-These three assumptions are sufficient to ensure that the posterior $bel(x_t)$ is always a Gaussian, for any point in time $t$.
-
-\subsubsection{The Kalman Filter Algorithm}
-
-\begin{algorithm}[H]
-\caption{Kalman Filter}
-\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
-\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
-
-\BlankLine
-\tcp{Prediction Step}
-$\bar{\mu}_t = A_t \mu_{t-1} + B_t u_t$\;
-$\bar{\Sigma}_t = A_t \Sigma_{t-1} A_t^T + R_t$\;
-
-\BlankLine
-\tcp{Kalman Gain}
-$K_t = \bar{\Sigma}_t C_t^T (C_t \bar{\Sigma}_t C_t^T + Q_t)^{-1}$\;
-
-\BlankLine
-\tcp{Measurement update Step}
-$\mu_t = \bar{\mu}_t + K_t (z_t - C_t \bar{\mu}_t)$\;
-$\Sigma_t = (I - K_tC_t)\bar{\Sigma}_t$\;
-
-\BlankLine
-\Return{$\mu_{t}$, $\Sigma_{t}$}
-\end{algorithm}
-
-\vspace{2mm}
-
-The Kalman filter alternates a measurement update step in which sensor data is integrated into the present belief with a prediction step (or control update step), which modifies the belief in accordance to an action.
-The measurement update step decreases and the prediction step increases uncertainty in the robot's belief.
-
-\subsection{The Extended Kalman Filter}
-
-\subsubsection{Reason to Linearize}
-
-The assumptions that observations are linear functions of the state and that the next state is a linear function of the previous state are crucial for the correctness of the Kalman filter.
-The efficiency of the Kalman filter is then due to the fact that the parameters of resulting Gaussian can be computed in closed form.
-Unfortunately, state transitions and measurements are rarely linear in practice.
-
-\vspace{2mm}
-
-The \textbf{Extended Kalman filter} (EKF) relaxes one of these assumptions: the linearity assumption.
-\begin{align}
-  x_t &= g(x_{t-1}, u_t) + \epsilon_t \\
-  z_t &= h(x_t) + \delta_t
-\end{align}
-
-With arbitrary functions $g$ and $h$, the belief is no longer a Gaussian.
-In fact, performing the belief update exactly is usually impossible for nonlinear functions, and the Bayes filter does not possess a closed-form solution.
-
-The EKF calculates a Gaussian approximation to the true belief.
-Accordingly, EKFs represent the belief at time t by a mean and a covariance, but it differs from KF in that this belief is only approximate, not exact.
-However, since these statistics cannot be computed in closed form, the EKF has to resort to an additional approximation.
-
-\subsubsection{Linearization Via Taylor Expansion}
-
-The key idea underlying the EKF approximation is called linearization.
-Linearization approximates the nonlinear funtion $g$ by a linear function that is tangent to $g$ at the mean of the Gaussian.
-Projecting the Gaussian through this linear approximation results in a Gaussian density.
-
-\vspace{2mm}
-
-Once $g$ is linearized, the mechanics of the EKF's belief propagation are equivalent to those of the Kalman filter.
-This technique is also applied to the multiplication of Gaussians when a measurement function $h$ is involved.
-Again, the EKF approximates $h$ by a linear function tangent to $h$, thereby retaining the Gaussian nature of the posterior belief.
-
-\newpage
-EKFs utilize a method called (first order) \textbf{Taylor expansion}.
-Taylor expansion constructs a linear approximation to a function $g$ from $g$'s value and slope.
-The slope is given by the partial derivative:
-
-\begin{equation}
-  g'(u_t, x_{t-1}) := \frac{\partial{g(u_t, x{t-1})}}{\partial{x_{t-1}}} \\
-\end{equation}
-
-\subsubsection{The EKF Algorithm}
-
-\begin{algorithm}[H]
-\caption{Extended Kalman Filter}
-\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
-\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
-
-\BlankLine
-\tcp{Prediction Step}
-$\bar{\mu}_t = g(u_t, \mu_{t-1})$\;
-$\bar{\Sigma}_t = G_t \Sigma_{t-1} G_t^T + R_t$\;
-
-\BlankLine
-\tcp{Kalman Gain}
-$K_t = \bar{\Sigma}_t H_t^T (H_t \bar{\Sigma}_t H_t^T + Q_t)^{-1}$\;
-
-\BlankLine
-\tcp{Measurement update Step}
-$\mu_t = \bar{\mu}_t + K_t (z_t -  h(\bar{\mu}_t)$\;
-$\Sigma_t = (I - K_t H_t)\bar{\Sigma}_t$;\
-
-\BlankLine
-\Return{$\mu_{t}$, $\Sigma_{t}$}
-\end{algorithm}
-
-\vspace{2mm}
-
-The linear predictions in Kalman filters are replaced by their nonlinear generalizations in EKFs.
-EKFs use \textbf{Jacobians} $G_t$ and $H_t$ instead of linear system matrices.
-
-The goodness of the linear approximation applied by the EKF depends on two main factors:
-The degree of uncertainty and the degree of local nonlinearity of the functions that are being approximated.
-Higher uncertainty typically results in less accurate estimates of the mean and covariance of the resulting random variable.
-Higher nonlinearities result in larger approximation errors.
-
-\subsubsection{Mixture of Gaussians}
-
-Sometimes, one might want to pursue multiple distinct hypotheses.
-A robot might have two distinct hypotheses as to where it is, but the arithmetic mean of these hypotheses ins not a likely contender.
-Such situations require multi-modal representations for the posterior belief.
-
-EKFs are incapable of representing such mutlimodal beliefs, so a common extension of EKF is to represent posteriors using mixtures, or sums, of Gaussians.
-A mixture of Gaussians may be of form
-
-\begin{equation}
-  bel(x_t) = \frac{1}{\sum_{l}{\psi_{t,l}}} \det{(2\pi \Sigma_{t,l})}^{-\frac{1}{2}} \exp{ \{ -\frac{1}{2} (x_t - \mu_{t,l})^T \Sigma_{t,l} (x_t - \mu_{t,l}) \}} \\
-  \label{eq:Mixture of Gaussians}
-\end{equation}
-
-Here $\psi_{t,l}$ are mixture parameters with $\psi_{t,l} \geq 0$.
-These parameters serve as weights of the mixture components.
-They are estimated from the likelihoods of the observations conditioned on the corresponding Gaussians.
-
-\vspace{2mm}
-
-To summarize, if the nonlinear functions are approximately linear at the mean of the estimate, then the EKF approximation may generally be a good
-one, and EKFs may approximate the posterior belief with sufficient accuracy.
-In practice, when applying EKFs it is therefore important to keep the uncertainty of the state estimate small.
-
-\newpage
-
-\subsection{The Unscented Kalman Filter}
-
-The Taylor series expansion applied by the EKF is one way to linearize the transformation of a Gaussian.
-Two other approaches have often been found to yield superior results.
-
-\vspace{2mm}
-
-One is known as moments matching (and the resulting filter is known as \textbf{assumed density filter}, ADF), in which the linearization is calculated in a way that preserves the true mean and the true covariance of the posterior distribution.
-Another is applied by the \textbf{unscented kalman filter}, UKF, which performs stochastic linearization through the use of a weighted statistical linear regression process.
-
-\subsubsection{Linearization via the Unscented Transform}
-
-Instead of approximating the function $g$ by a Taylor series expansion, the UKF deterministically extracts \textbf{sigma points} from the Gaussian and passes these through $g$.
-In the general case, these sigma points are located at the mean and symmetrically along the main axes of the covariance (two per dimension).
-
-For an n-dimensional Gaussian with mean $\mu$ and covariance $\Sigma$, the resulting $2n+1$ sigma points $\mathcal{X}^{ [i] }$ are chosen according to the following rule:
-\begin{align}
-  \mathcal{X}^{ [0] } &= \mu \\
-  \mathcal{X}^{ [i] } &= \mu + (\sqrt{(n + \lambda) \Sigma})_{i} \hspace{9mm} \text{for } i=1,...,n \\
-  \mathcal{X}^{ [i] } &= \mu - (\sqrt{(n + \lambda) \Sigma})_{i-n} \hspace{5mm} \text{for } i=n+1,...,2n
-\end{align}
-
-Here $\lambda = \alpha^2 (n+ \kappa)-n$, with $\alpha, \kappa$ being scaling parameters that determine how far the sigma points are spread from the mean.
-Each sigma point has two weights associated with it.
-One weight $w_m^{ [i] }$ is used when computing the mean, the other weight $w_c^{ [i] }$ is used when recovering the covariance of the Gaussian.
-
-\begin{align}
-  w_m^{ [0] } &= \frac{\lambda}{n+\lambda} \\
-  w_c^{ [0] } &= \frac{\lambda}{n+\lambda} + (1 - \alpha^2 + \beta) \\
-  w_i^{ [i] } &= w_c^{ [i] } = \frac{1}{2(n+\lambda)} \hspace{9mm} \text{for } i=1,...,2n.
-\end{align}
-
-The parameter $\beta$ can be chosen to encode additional (higher order) knowledge about the distribution underlying the Gaussian representation.
-If the distribution is an exact Gaussian, then $\beta=2$ is the optimal choice.
-
-The sigma points are then passed through the function $g$, thereby probing how $g$ changes the shape of the Gaussian.
-The parameters $(\mu' \Sigma')$ of the resulting Gaussian are extracted from the mapped sigma points $\mathcal{Y}^{ [i] }$ according to:
-
-\begin{align}
-  \mathcal{Y}^{ [i] } &= g(\mathcal{X}^{ [i] }) \\
-  \mu' &= \sum_{i=0}^{2n}{w_m^{ [i] } \mathcal{Y}^{ [i] }} \\
-  \Sigma' &= \sum_{i=0}^{2n}{w_c^{ [i] }(\mathcal{Y}^{ [i] } - \mu')(\mathcal{Y}^{ [i] } - \mu')^T}
-\end{align}
-
-The unscented transform is more accurate than the first order Taylor series expansion applied by the EKF.
-In fact, it can be shown that the unscented transform is accurate in the first two terms of the Taylor expansion, while EKF only captures the first order term.
-
-\subsubsection{The UKF Algorithm}
-
-\begin{algorithm}[H]
-\caption{Unscented Kalman Filter}
-\KwInput{$\mu_{t-1}$, $\Sigma_{t-1}$, control $\control_t$, measurement $\obs_t$}
-\KwOutput{$\mu_{t}$, $\Sigma_{t}$}
-
-\BlankLine
-$\mathcal{X}_{t-1} = (\mu_{t-1} \hspace{5mm} \mu_{t-1} + \gamma \sqrt{\Sigma_{t-1}} \hspace{5mm} \mu_{t-1}-\gamma \sqrt{\Sigma_{t-1}})$\;
-$\bar{\mathcal{X}}_t^* = g(u_t, \mathcal{X}_{t-1})$\;
-
-\BlankLine
-
-$\bar{\mu}_t = \sum_{i=0}^{2n}{w_m^{ [i] } \bar{\mathcal{X}}^{ *[i] }_t}$\;
-
-\BlankLine
-
-$\bar{\Sigma}_t = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{X}}_t^{ *[i] } - \bar{\mu}_t)(\bar{\mathcal{X}}_t^{ *[i] } - \bar{\mu}_t)^T} + R_t$\;
-
-\BlankLine
-
-$\bar{\mathcal{X}}_{t} = (\bar{\mu}_{t} \hspace{5mm} \bar{\mu}_{t} + \gamma \sqrt{\bar{\Sigma}_{t}} \hspace{5mm} \bar{\mu}_{t}-\gamma \sqrt{\bar{\Sigma}_{t}})$\;
-
-\BlankLine
-
-$\bar{\mathcal{Z}}_t = h(\bar{\mathcal{X}_t})$\;
-$\hat{z}_t = \sum_{i=0}^{2n} {w_m^{ [i] } \bar{\mathcal{Z}}}_t^{ [i] } $\;
-
-\BlankLine
-
-$S_t = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)^T} + Q_t$\;
-
-$\bar{\Sigma}_t^{x,z} = \sum_{i=0}^{2n}{w_c^{ [i] }(\bar{\mathcal{X}}_t^{ [i] } - \bar{\mu}_t)(\bar{\mathcal{Z}}_t^{ [i] } - \hat{z}_t)^T}$\;
-
-\BlankLine
-
-$K_t = \bar{\Sigma_t^{x,z}} S_t^{-1}$\;
-
-\BlankLine
-
-$\mu_t = \bar{\mu}_t + K_t (z_t - \hat{z}_t)$\;
-$\Sigma_t = \bar{\Sigma}_t - K_t S_t K_t^T$\;
-
-\BlankLine
-\Return{$\mu_{t}$, $\Sigma_{t}$}
-\end{algorithm}
-
-\vspace{2mm}
-
-For purely linear systems, it can be shown that the estimates generated by the UKF are identical to those generated by the Kalman filter.
-For nonlinear systems the UKF produces equal or better results than the EKF, where the improvement over the EKF depends on teh nonlinearities and spread of the prior state uncertainty.
-
-Another advantage of the UKF is that it does not require the computation of Jacobians, thus is often referred to as the derivative-free filter.
-Unscented transform has some ressemblance to the sample based representation used by particle filters, a key difference however is that the sigma points are determined deterministically, while particle filters draw samples randomly.
-If the underlying distribution is approximately Gaussian, then the UFK representation is far more efficienct than the particle filter, however if the belief is highly non-gaussian, then the UKF representation performs poorly.
-
-\newpage
-
-\subsection{The Information Filter}
-
-The dual of the Kalman filter is the \textbf{information filter} or IF.
-Just like the KF, the information filter represents the belief by a Gaussian, thus the standard IF is subject to the same assumptions underlying the KF.
-
-However, instead of representing the Gaussians by their moments(mean, covariance), information filters represent Gaussians in their canonical parametrization, which is comprised of an information matrix and an information vector.
-The difference in parametrization leads to different update equations.
-
-\subsubsection{Canonical Parametrization}
-
-The canonical parametrization of a multivariate Gaussian is given by a matrix $ \Omega$ and a vector $\xi$
-\begin{align}
-  \Omega &= \Sigma^{-1} \\
-  \xi &= \Sigma^{-1} \mu \\
-\end{align}
-
-$\Omega$ is called the \textbf{information matrix} or sometimes the precision matrix.
-The vector $\xi$ is called the \textbf{information vector}.
-
-The canonical parametrization is often derived by multiplying out the exponent of a Gaussian.
-\begin{align}
-  p(x) &= \det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2}(x-\mu)^{T}\Sigma^{-1}(x-\mu})\} \\
-  p(x) &= \det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu -\frac{1}{2} \mu^T\Sigma^{-1}\mu}\} \\
-           &= \underbrace{\det{(2\pi\Sigma)^{-\frac{1}{2}}} \exp{\{-\frac{1}{2} \mu^T\Sigma^{-1}\mu})\}}_{\text{constant}} \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu}\} \\
-           &= \eta \exp{\{-\frac{1}{2} x^T\Sigma^{-1}x + x^T\Sigma\mu}\} \\
-        p(x)   &= \eta \exp{\{-\frac{1}{2} x^T\Omega x + x^T\xi}\} \\
-\end{align}
-
-The term labeled "constant" does not depend on the target variable $x$, hence it can be subsumed into the normalizer $\eta$.
-In many ways the canonical parametrization is more elegant than the moments parameterization.
-
-In particular the negative logarithm of the Gaussian is a quadratic function in x, with the canonical parameters:
-
-\begin{equation}
-  -\log{p(x)} = \text{const. } + \frac{1}{2} x^T \Omega x - x^T \xi \\
-  \label{eq:Negative logarithm of gaussian in canonical parametrization}
-\end{equation}
-
-Here const is a constant. Negative logarithms of probabilities do not normalize to 1.
-The negative logarithm of our distribution $p(x)$ is quadratic in $x$ with the quadratic term parameterized by $\Omega$ and the linear term by $\xi$.
-
-In fact, for Gaussians, $\Omega$ must be positive semidefinite , hence $-\log{p(x)}$ is a quadratic distance function with mean $\mu=\Omega^{-1}\xi$.
-This is easily verified by setting the first derivative to zero:
-\begin{equation}
-  \frac{\partial{ [-\log{p(x)}] }}{\partial{x}} = 0 \Longleftrightarrow \Omega x - \xi = 0 \Longleftrightarrow x = \Omega^{-1}\xi\\
-  \label{eq:First derivative of negative log og Gaussian in canonical form}
-\end{equation}
-
-The matrix $\Omega$ determines the rate at which the distance function increases in the different dimensions of the variable x.
-A quadratic distance that is weighted by a matrix $\Omega$ is called a \textbf{Mahalanobis distance}.
-
-\subsubsection{The Information Filter Algorithm}
-
-\begin{algorithm}[H]
-\caption{Information Filter}
-\KwInput{$\xi_{t-1}$, $\Omega_{t-1}$, $\control_t$, $\obs_t$}
-\KwOutput{$\xi_{t}$, $\Omega_{t}$}
-
-\BlankLine
-\tcp{Prediction Step}
-$\bar{\Omega}_t = (A_t \Omega_{t-1}^{-1} A_t^T + R_t)^{-1}$\;
-
-$\bar{\xi}_t = \bar{\Omega}_t (A_t \Omega_{t-1}^{-1}\xi_{t-1} + B_t u_t)^{-1}$\;
-
-\BlankLine
-\tcp{Measurement Update Step}
-
-$\Omega_t = C_t^T Q_t^{-1} C_t + \bar{\Omega}_t$\;
-$\xi_t = C_t^T Q_t^{-1} z_t + \bar{\xi}_t $\;
-
-\BlankLine
-\Return{$\xi_{t}$, $\Omega_{t}$}
-\end{algorithm}
-
-\vspace{2mm}
-
-The update involves matrices $A_t, B_t, C_t, R_t, \text{and } Q_t$.
-The IF assumes that the state transition and measurement probabilities are governed by the following linear Gaussian equations:
-\begin{align}
-  x_t &= A_t x_{t-1} + B_t u_t + \epsilon_t \\
-  z_t &= C_t x_t + \delta_t
-\end{align}
-
-Just like the Kalman filter, the information filter is updated in two steps, a prediction step and a measurement update step.
-
-\subsubsection{The Extended Information Filter Algorithm}
-
-The \textbf{extended information filter} or EIF, extends the information filter to the nonlinear case.
-These update equations are largely analog to the linear information filter, with the functions g and h replacing the parameters of the linear model.
-Unfortunately, both $g$ and $h$ require a state as an input.
-This mandates the recovery of a state estimate $\mu$ from the canonical parameters.
-The necessity to recover the state estimate seems at odds with the desire to represent the filter using its canonical parameters.
-
-\begin{algorithm}[H]
-\caption{Extended Information Filter}
-\KwInput{$\xi_{t-1}$, $\Omega_{t-1}$, $\control_t$, $\obs_t$}
-\KwOutput{$\xi_{t}$, $\Omega_{t}$}
-
-\BlankLine
-\tcp{State recovery}
-$\mu_{t-1} = \Omega_{t-1}^{-1} \xi_{t-1} $\;
-
-\BlankLine
-
-\tcp{Prediction Step}
-
-$\bar{\Omega}_t = (G_t \Omega_{t-1}^{-1} G_t^T + R_t)^{-1}$\;
-
-$\bar{\xi}_t = \bar{\Omega}_t g(u_t, \mu_{t-1})$\;
-
-$\bar{\mu}_t = g(u_t, \mu_{t-1})$\;
-
-\BlankLine
-\tcp{Measurement Update Step}
-
-$\Omega_t = \bar{\Omega}_t + H_t^T Q_t^{-1} H_t $\;
-$\xi_t = \bar{\xi}_t + H_t^T Q_t^{-1} [z_t -h(\bar{\mu}_t + H_t \bar{\mu}_t) $\;
-
-\BlankLine
-\Return{$\xi_{t}$, $\Omega_{t}$}
-\end{algorithm}
-
-\vspace{2mm}
-
-\subsubsection{Practical Considerations}
-
-When applied to robotics problems, the IF possess several advantages over the Kalman filter.
-For example, representing global uncertainty is simple in the information filter: simply set $\Omega = 0$.
-When using moments, such global uncertainty amounts to a covariance of infinite magnitude.
-
-The IF tends to be numerically more stable than the Kalman filter in many if the applications.
-Information filter and several extensions enable a robot to integrate information without immediately resolving it into probabilities.
-For large problems, KF induces severe computational probelems, since any new piece of information requires propagaton through a large system of variables.
-The information filter, with appropriate modification, can side-step this issue by simply adding the new information locally into the system.
-
-\newpage
-\section{Practice Problem 1:}
-\begin{itemize}
-  \item On each visit the robot spews out one candy with probability $0.6$, two candies with probability 0.3 or three with probability 0.1
-  \item Let Q(U=u) be the probability distribution function for the robot spewing the candy.
-  \begin{itemize}
-    \item Q(u=1) = 0.6
-    \item Q(u=2) = 0.3
-    \item Q(u=3) = 0.1
-  \end{itemize}
-  \item To refill the candy compartment, it can estimate tan accurate count with probability 0.6 or it can be off by one in either direction with probability
-  \item Let P(X=x) to be the probability distribution function for the robots measurement of how many candy its holding.
-  \begin{itemize}
-    \item P(x=x) = 0.6
-    \item P(x=x+1) = 0.2
-    \item P(x=x-1) = 0.2
-  \end{itemize}
 \end{itemize}
 
-\textbf{We start with $50$ candies, After the first visit, sensor measured $48$.
-After the second visit, the sensor measured $48$ again. Calculate the belief of the number of candy in the comporatement after the first and the second visit.
-}
 
-\begin{align}
-  p(x \mid z) &= \frac{p(z \mid x)p(x)}{p(z)} \\
-  p(x) &= \frac{p(x \mid z)p(z)}{p(z | x)} \\
-  \label{eq:Bayes Rule}
-\end{align}
 
-\begin{align}
-  P(u = 1) &= 0.6 \\
-  P(u = 2) &= 0.3 \\
-  P(u = 3) &= 0.1 \\
-  \label{eq: Action Probability Distributions}
-\end{align}
 
-Model the state as:
-\begin{equation}
-  x(t+1) = x(t) - u(t) \\
-  \label{eq:State Model}
-\end{equation}
 
-Initially, we have a belief of the number of candy in the comporatement to be: $bel(x_t=50) = 1.0$
-At the first visit, the robot takes an action. Now, we have:
-\begin{align*}
-  \bar{bel}(x_t=49) &= 0.6 \\
-  \bar{bel}(x_t=48) &= 0.3 \\
-  \bar{bel}(x_t=47) &= 0.1 \\
-\end{align*}
 
-Here we get a measurement from our sensor, and we measure $z = 48$. But since our measurement model has uncertainty, this belief might be wrong.
-We need to calculate the bayes update to get a posterior. So we can do:
-\begin{equation}
-  P(z=48 \mid x_t) = \eta P(z=48 \mid x=49)
-  P(z=48 \mid x=48) = 0.6
-  P(z=48 \mid x=47) = 0.2
-  \label{eq:}
-\end{equation}
 
-% # we get measurement 48
-%
-% # if we had u=1, x=49: 0.6 * 0.2 = 0.12
-% # if we had u=2, x=48: 0.3 * 0.6 = 0.18
-% # if we had u=3, x=47: 0.1 * 0.2 = 0.02
-% unnormalized_posterior = np.array([[0.12], [0.18], [0.02]])
-% posterior = unnormalized_posterior / sum(unnormalized_posterior)
-%
-% # [0.375  0.5625 0.0625] means
-% # [49 48 47]
-%
-% """
-% if we had x_t-1 = 49, u=1: x=48 0.375 * 0.6
-%                       u=2: x=47 0.375 * 0.3
-%                       u=3: x=46 0.375 * 0.1
-%
-% if we had x_t-1 = 48, u=1: x=47 0.5625 * 0.6
-%                       u=2: x=46 0.5625 * 0.3
-%                       u=3: x=45 0.5625 * 0.1
-%
-% if we had x_t-1 = 47, u=1: x=46 0.0625 * 0.6
-%                       u=2: x=45 0.0625 * 0.3
-%                       u=3: x=44 0.0625 * 0.1
-%
-%     we got measurement z=48 again
-%
-% Which means we could have gotten P(z=48 | x=48): (0.375 * 0.6) * 0.6
-%                                  P(z=48 | x=47): (0.375 * 0.3) * 0.2 + (0.5625 * 0.6) * 0.2
-%
-% """
-% # Take action
-% bel_48 = 0.6 * 0.375
-% bel_47 = 0.375 * 0.3 + 0.5626 * 0.6
-% bel_46 = 0.375 * 0.1 + 0.5625 * 0.3 + 0.0625 * 0.6
-% bel_45 = 0.5625 * 0.1 + 0.0625 * 0.3
-% bel_44 = 0.0625 * 0.1
-% bel_bar = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
-% unnormalized_posterior = np.array([[bel_48], [bel_47], [bel_46], [bel_45], [bel_44]])
-%
-% measurement_model = np.array([0.6, 0.2, 0.0, 0.0, 0.0])
-% bel_bar = np.array([0.225, 0.450, 0.244, 0.075, 0.006])
-% unnormalized_posterior = bel_bar * measurement_model
-% posterior = unnormalized_posterior / sum(unnormalized_posterior)
-%
-% print(f"{posterior}")
-% # bel = [z=x+1, z=x, z=x-1]
-% measurement_mdl = np.array([[0.2, 0.6, 0.2]])
-%
-% After visit 1 (z=48): bel(x(1)) = [0.375, 0.5625, 0.0625] for x ∈ {49, 48, 47}
-% After visit 2 (z=48): bel(x(2)) = [0.6, 0.4, 0.0, 0.0, 0.0] for x ∈ {48, 47, 46, 45, 44}
+
+
 \end{document}
 

@@ -1,0 +1,123 @@
+\section{Robot Pose and Covariance Uncertainty Transformations}
+
+\subsection{Definitions}
+
+\subsubsection{Robot Position}
+\begin{itemize}
+  \item Displacement vector relative to some frame of reference, in Euclidean space.
+  \item Pick one refernce point on the robot (body center), then a set of (x,y,z) coordinates of that point fully describes the robot position.
+\end{itemize}
+This describes the robots body position: $\mathbf{p} + \mathbf{\Delta p}$
+,where $\mathbf{p} = \begin{bmatrix} x \\ y \end{bmatrix} \ \mathbf{\Delta p} = \begin{bmatrix} \Delta x \\ \Delta y \end{bmatrix} \ \mathbf{\Delta p}: \mathcal{N}(0, \Sigma_{xy})$
+
+\subsubsection{Robot Pose}
+\begin{itemize}
+  \item Robot position and orientation, where body yaw is described as $\theta + \Delta \theta \ \Delta \theta: \mathcal{N}(0, \sigma_{\theta}^2)$
+  \item Place a coordinate system on the robot, then its a matter of origin translation and coordinate system rotation
+  \item Ways to represent:\ Position+Euler Angles, \ Position+Quaternions, \  Homogenous Transform Matrix
+  \item And pose uncertainty: \ 1. Pose + Covariance Matrix \ 2. Pose Cloud
+\end{itemize}
+
+Pose and pose covariance is then given by: $\mathbf{P} = \begin{bsmallmatrix} \mathbf{p} \\ \theta \end{bsmallmatrix} \ \Sigma_{\mathbf{P}} =
+\begin{bmatrix}
+\sigma_x^2 & \sigma_{xy} & 0 \\
+\sigma_{xy} & \sigma_y^2 & 0 \\
+0 & 0 & \sigma_{\theta}^2
+\end{bmatrix}$
+
+\subsubsection{Transformations}
+\begin{itemize}
+  \item Transformations from local (robot) frame of reference to the global (map) frame of reference is the robot pose.
+  \item Transformation is the displacement needed to bring the global frame into alignment with the local frame.
+  \item Transformation is the conversion of point (or vector) coordiantes in the local frame to global frame.
+\end{itemize}
+
+\begin{equation}
+  \mathbf{T_{RA}} =
+  \begin{bmatrix}
+      \mathbf{R}_{3x3} & \mathbf{t}_{3x1} \\
+      \mathbf{0}_{1x3} & 1
+  \end{bmatrix}
+  \label{eq:Homogenous Transform matrix}
+\end{equation}
+
+where \textbf{R} is the reference frame, and \textbf{A} is the local frame.
+But why should we care about transforms?
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{images/transforms.png}
+  \end{center}
+  \caption{Robot Transformations Chain}\label{fig:Transforms}
+\end{figure}
+
+\subsection{Uncertainty Propagation (2D case)}
+\subsubsection{Pose Uncertainty}
+Uncetain robot pose in map reference frame:
+\begin{equation}
+  \mathbf{T}_{MR} = \begin{bmatrix} \mathbf{R}(\theta + \Delta \theta) & \mathbf{p}+\mathbf{\Delta p} \\ \mathbf{0}_{1x2} & 1 \end{bmatrix}_{3x3}
+\end{equation}
+Uncertain camera pose in map reference frame:
+\begin{align}
+  \mathbf{T}_{MC} &= \mathbf{T}_{MR} \mathbf{T}_{RC} \\
+  \mathbf{T}_{RC} &= \begin{bsmallmatrix} \mathbf{R}(\phi) & \mathbf{t} \\ \mathbf{0} & 1 \end{bsmallmatrix}
+\end{align}
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{images/transform_uncertainty.png}
+  \end{center}
+  \caption{Visualizing Uncertainty}\label{fig:Visualizing Uncertainty}
+\end{figure}
+
+Putting it together, we get:
+\begin{equation}
+  \mathbf{T}_{MC} = \begin{bmatrix} \mathbf{R}(\theta + \phi + \Delta \theta) & \mathbf{R}(\theta) \mathbf{t} + \mathbf{p} - \mathbf{R}(\theta - \frac{\pi}{2}) \Delta \theta + \mathbf{\Delta p}) \\
+                  \mathbf{0} & 1
+  \end{bmatrix}
+  \label{eq:position uncertainty}
+\end{equation}
+\begin{itemize}
+  \item Position uncertainty has two components:
+  \begin{itemize}
+    \item Original uncertainty characterized by $\Sigma_{xy}$.
+    \item Orientation uncertainty characterized by $\sigma_{\theta}^2$, projected to x/y axes
+  \end{itemize}
+  \item Result is a banana-shaped point-cloud approximated by an ellipse, which stretches the original ellipse in tangent direction
+\end{itemize}
+
+For Covariance, we assume independent position and orientation estimates. We will also make use of the corrollary that covariance terms are additve. Then, camera pose and covariance can be written as:
+\begin{align*}
+  Q &= \begin{bsmallmatrix} \mathbf{R}(\theta)\mathbf{t} + \mathbf{p} \\ \theta + \phi \end{bsmallmatrix} \\
+  \Sigma_Q &= \begin{bmatrix} \Sigma_{xy} + \Sigma_{n} & 0 \\ 0 & \sigma_{\theta}^2 \end{bmatrix} \\
+  \Sigma_n &= \mathbf{R}(\theta - \frac{\pi}{2})\mathbf{t}\sigma_{\theta}^2 \left( \mathbf{R}(\theta - \frac{\pi}{2})\mathbf{t}\right)^T\\
+  \Sigma_n &= \mathbf{R}(\theta - \frac{\pi}{2}) \ \mathbf{t} \mathbf{t}^T \ \mathbf{R}(\theta - \frac{\pi}{2})\sigma_{\theta}^2\\
+\end{align*}
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.3\textwidth]{images/banana_cov.png}
+  \end{center}
+  \caption{Covariance Uncertainty Propagation}\label{fig:}
+\end{figure}
+
+\subsubsection{Orientation Uncertainty}
+Orientation uncertainty is one-dimensional in the 2D plane (planar robots), consisting of yaw, ($\theta$) and yaw variance $\sigma_{\theta}^2$.
+Gaussian approximation is valid for small errors in yaw however, one must be careful with wraparound as yaw needs to be bounded by $2\pi$.
+
+So how do we represent uncertainty in 3D?
+\begin{align*}
+R_{x,\theta} &= \begin{bmatrix}
+1 & 0 & 0 \\
+0 & \cos\theta & -\sin\theta \\
+0 & \sin\theta & \cos\theta
+\end{bmatrix} \\[1em]
+R_{y,\theta} &= \begin{bmatrix}
+\cos\theta & 0 & \sin\theta \\
+0 & 1 & 0 \\
+-\sin\theta & 0 & \cos\theta
+\end{bmatrix} \\[1em]
+R_{z,\theta} &= \begin{bmatrix}
+\cos\theta & -\sin\theta & 0 \\
+\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\end{align*}
