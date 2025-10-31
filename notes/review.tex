@@ -14,12 +14,16 @@
 \usepackage{mathtools}  % Enhanced math (e.g., dcases)
 \usepackage{bm}         % Bold math symbols (\bm{x})
 \usepackage{bbm}        % Blackboard bold for indicators
+% \usepackage{algorithm2e}  % for algorithms
 
 % ============ Graphics & Figures ============
 \usepackage{graphicx}
 \usepackage{tikz}
 \usetikzlibrary{bayesnet, arrows.meta, positioning}
 \usepackage{float}
+\usepackage{tcolorbox}    % for colored boxes
+\usepackage{xcolor}      % For colors
+\usepackage{colortbl}    % For \rowcolor
 % ============ Algorithms ============
 \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \SetKwInput{KwInput}{Input}
@@ -64,7 +68,6 @@
 
 % ============ Custom Commands ============
 % Probability & Statistics
-\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
 \newcommand{\expect}[1]{\mathbb{E}\left[#1\right]}
 \newcommand{\var}[1]{\text{Var}\left(#1\right)}
 \newcommand{\cov}[2]{\text{Cov}\left(#1, #2\right)}
@@ -81,7 +84,11 @@
 \newcommand{\obs}{\bm{z}}
 \newcommand{\control}{\bm{u}}
 \newcommand{\noise}{\bm{w}}
+\newcommand{\dt}{\Delta t}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
+\DeclareMathOperator{\atantwo}{atan2}
 % ============ Hyperlinks ============
 \usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
 
@@ -91,99 +98,188 @@
 \date{\today}
 
 \begin{document}
-
 \maketitle
-\tableofcontents
+% \tableofcontents
 \newpage
-\input{bayes_filter.tex}
+\input{bayes_filter_improved.tex}
 \newpage
-\input{gaussian_filters.tex}
+\input{gaussian_filters_improved.tex}
+\newpage
+\input{robot_motion_improved.tex}
+\newpage
+\input{localization_improved.tex}
 \newpage
 \input{transforms.tex}
 \newpage
-\section{Robot Motion}
+\input{unit_conversion.tex}
 
-\subsection{Kinematic Configuration}
-\textit{Kinematics} is the calculus of describing the effect of control actions oon the configuration of a robot. The configuration of a rigid mobile robot is commonly
-described by six variables, its three-dimensional Cartesian coordinates, and its three Euler angles (roll, pitch yaw) relative to an external coordinate frame.
-We will stick with mobile robots operating in planar environments, whose kinematic state is summarized by three variables, referred to as pose in this context.
+\section*{EKF Localization Algorithm for Underwater Robot}
 
-The pose of a mobile robot operating in a plane is comprised of two-dimensional planar coordinates relative to an external coordinate frame, along with its angular orientation.
-\begin{figure}[H]
-  \begin{center}
-    \includegraphics[width=0.3\textwidth]{images/robot_pose.png}
-  \end{center}
-  \caption{Robot pose, shown in global coordinate system}\label{fig:Robot Pose}
-\end{figure}
-The pose of the robot is described by the following vector $\begin{bsmallmatrix}x \\ y \\ \theta \end{bsmallmatrix}$.
+\subsection*{1. STATE VECTOR}
 
-The orientation of a robot is often called bearing or heading direction. The pose without orientation is called location.
-The pose and the locations of objects in the environment may constitute the kinematic state $x_t$ of the robot-environment system.
+Since the robot has a perfect compass (orientation is always known), we only need to estimate position:
 
-\subsection{Probabilistic Kinematics}
-The probabilistic kinematics model, or motion model plays the role of the state transition model in mobile robotics. This model is the familiar conditional density $\pcond{x_t}{u_t, x_{t-1}}$.
+\textbf{State:}
+\[
+\mathbf{x}_t = \begin{bmatrix} x \\ y \\ z \end{bmatrix}
+\]
 
-Here $x_t \ \text{and } x_{t-1}$ are both robot poses, and $u_t$ is a motion command. This model describes the posterior distribution over kinematic states that a robot assumes when executing the motion command $u_t$ at $x_{t-1}$.
+\subsection*{2. MOTION MODEL}
 
-We will discuss in detail two specific probabilistic motion models, both for mobile robots operating in the plane.
-The first assumes taht the motion data $u_t$ specifies the velocity commands given to the robot's motors. Many commerical mobile robots are actuated by independent translational and rotational velocities.
-The second model assumes that one has access to odometry information.
+The robot moves by setting velocities in each direction with Gaussian noise.
 
-In practice, odometry models tend to be more accurate than velocity models, for the simple reason that most commercial robots do not execute velocity commands with the level of accuracy that can be obtained by measuring the revolution of the robots wheels.
-However, odometry is only available after executing a motion command, hence it cannot be used for motion planning. Thus, odometry models are usualy applied for estimation, whereas velocity models are used for probabilistic motion planning.
+\textbf{Control input:}
+\[
+\mathbf{u}_t = \begin{bmatrix} u_x \\ u_y \\ u_z \end{bmatrix} = \begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{z} \end{bmatrix} \Delta t
+\]
 
-\subsection{Velocity Motion Model}
-The velocity motion model assumes that we can control a robot through two velocities, a rotational and a translational velocity.
-We denote the translational velocity at time $t$ by $v_t$ and the rotational velocity by $\omega_t$. Hence we have $u_t = \begin{bsmallmatrix} v_t \\ \omega_t \end{bsmallmatrix}$.
-We arbitrarily postulate that the positive rotational velocities induce a counterclockwise rotation, and that positive translational velocities correspond to forward motion.
+\textbf{Motion model:}
+\[
+\mathbf{x}_t = \mathbf{x}_{t-1} + \mathbf{u}_t + \boldsymbol{\epsilon}_t
+\]
+where $\boldsymbol{\epsilon}_t \sim \mathcal{N}(0, \mathbf{R}_t)$ with $\mathbf{R}_t = \text{diag}(\sigma_x^2, \sigma_y^2, \sigma_z^2)$
 
-It is possible to create an algorithm for computing the probability $\pcond{x_t}{u_t, x_{t-1}}$ of being at $x_t$ after executing $u_t$ begining at state $x_{t-1}$, assuming that the control is carried out for the fixed duration $\Delta t$.
-The parameters $\alpha_1 \text{ to } \alpha_6$ are robot-specific motion error parameters.
-The algorithm first calculated the controls of an error-free robot; the meaning of the individual variables in this calculation will become
-more apparent below, when we derive it. These parameters are given by $\hat{v} \ \text{and } \hat{\omega}$.
+\textbf{In function form:}
+\[
+g(\mathbf{x}_{t-1}, \mathbf{u}_t) = \mathbf{x}_{t-1} + \mathbf{u}_t
+\]
 
-\begin{figure}[H]
-  \begin{center}
-    \includegraphics[width=0.5\textwidth]{images/motion_model_velocity.png}
-  \end{center}
-  \caption{Algorithm for computing $\pcond{x_t}{u_t,x_{t-1}}$ based on velocity information} \label{fig:motion_model_velocity}
-\end{figure}
+\textbf{Motion Jacobian:}
+\[
+\mathbf{G}_t = \frac{\partial g}{\partial \mathbf{x}} = \mathbf{I}_{3 \times 3}
+\]
 
-The function $\mathbf{prob}(x,b^2)$ models the motion error. It computes the probability of its parameter x under a zero-centered random variable with variance $b^2$.
-Two possible implementations are shown in the next algorithm, for erro variables with normal distribution and triangular distribution, respectively.
+\textit{Why?} Each position component updates independently:
+\begin{align*}
+x_t &= x_{t-1} + u_x \Rightarrow \frac{\partial x_t}{\partial x_{t-1}} = 1 \\
+y_t &= y_{t-1} + u_y \Rightarrow \frac{\partial y_t}{\partial y_{t-1}} = 1 \\
+z_t &= z_{t-1} + u_z \Rightarrow \frac{\partial z_t}{\partial z_{t-1}} = 1
+\end{align*}
 
-\newpage
+\subsection*{3. MEASUREMENT MODEL}
 
-\subsection{Odometry Motion Model}
+\textbf{Beacon $j$ location:}
+\[
+\mathbf{m}_j = \begin{bmatrix} m_x^j \\ m_y^j \\ m_z^j \end{bmatrix} \text{ (known)}
+\]
 
-The velocity motion model discussed thus far uses the robot's velocity to compute posteriors over poses. Alternatively, one might want to use the odometry measurements as the bassis for calculating the robot's motion over time.
-Odomtery is commonly obtained by integrating wheel encoder information; most commerical robots make such integrated pose estimation available in periodic time intervals.
-This leads to a second motion model: the odometry motion model. This model uses odometry measurements in lieu of controls.\\
+\textbf{What robot measures:} Time-of-flight $\Delta t_j = t_{\text{receive}} - t_{\text{emit}}^j$
 
-Practical experience suggests that odometry, while still erroneous, is usually more accurate then velocity.
-Both suffer from drift and slippage, but velocity additionaly suffers from mismatch between ethe actual motion controllers and its crude mathematical model.
-However, odometry is only available in retrospect, after the robot moded. This poses no problem for filter algorithms, however makes this information unusuable for accurate motion planning and control.
+\textbf{Actual measurement:} $z_t^j = c \cdot \Delta t_j$ (where $c \approx 1500$ m/s)
 
-\begin{figure}[H]
-  \begin{center}
-    \includegraphics[width=0.3\textwidth]{images/odom_model.png}
-  \end{center}
-  \caption{Odometry Model: The robot motion in the time interval $(t-1, t]$ is approximated by a rotation $\delta_{rot1}$ followed by a translation $\delta_{trans}$ and a second rotation $\delta_{rot2}$. The turns and translations are noisy}\label{fig:Odomtery Model}
-\end{figure}
+This gives the distance from robot to beacon $j$.
 
-\subsubsection{Closed Form Solution}
+\textbf{Expected measurement function:}
+\[
+h(\mathbf{x}_t, \mathbf{m}_j) = \|\mathbf{x}_t - \mathbf{m}_j\| = \sqrt{(x - m_x^j)^2 + (y - m_y^j)^2 + (z - m_z^j)^2}
+\]
 
-Technically, odometric information are sensor measurements, not controls. To model odometry as measurements, the resulting Bayes filter would have to include the actual velocity as state variables, which increases the dimension of the state space.
+\textbf{Measurement model:}
+\[
+z_t^j = h(\mathbf{x}_t, \mathbf{m}_j) + \delta_j
+\]
+where $\delta_j \sim \mathcal{N}(0, Q_j)$ and $Q_j = \sigma_{\text{range}}^2$ (scalar)
 
+\subsection*{4. TAYLOR APPROXIMATION (Linearization)}
+
+Define:
+\begin{align*}
+\Delta x &= x - m_x^j \\
+\Delta y &= y - m_y^j \\
+\Delta z &= z - m_z^j \\
+r &= \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}
+\end{align*}
+
+\textbf{Compute Jacobian $\mathbf{H}_t^j = \frac{\partial h}{\partial \mathbf{x}}$:}
+
+\[
+\frac{\partial h}{\partial x} = \frac{\partial r}{\partial x} = \frac{\partial}{\partial x}\left[\sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}\right]
+\]
+\[
+= \frac{1}{2} \cdot 2\Delta x \cdot (\Delta x^2 + \Delta y^2 + \Delta z^2)^{-1/2} = \frac{\Delta x}{r}
+\]
+
+Similarly:
+\[
+\frac{\partial h}{\partial y} = \frac{\Delta y}{r}, \quad \frac{\partial h}{\partial z} = \frac{\Delta z}{r}
+\]
+
+\textbf{Measurement Jacobian (evaluated at predicted state $\bar{\boldsymbol{\mu}}_t$):}
+\[
+\mathbf{H}_t^j = \begin{bmatrix} \frac{\Delta x}{r} & \frac{\Delta y}{r} & \frac{\Delta z}{r} \end{bmatrix}
+\]
+
+where:
+\begin{align*}
+\Delta x &= \bar{\mu}_{t,x} - m_x^j \\
+\Delta y &= \bar{\mu}_{t,y} - m_y^j \\
+\Delta z &= \bar{\mu}_{t,z} - m_z^j \\
+r &= \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}
+\end{align*}
+
+\subsection*{5. COMPLETE EKF ALGORITHM}
+
+\textbf{Initialization:}
+\begin{itemize}
+\item $\boldsymbol{\mu}_0$ = initial position estimate
+\item $\boldsymbol{\Sigma}_0$ = initial covariance ($3 \times 3$)
 \end{itemize}
 
+\subsubsection*{PREDICTION STEP:}
+\begin{align*}
+\bar{\boldsymbol{\mu}}_t &= \boldsymbol{\mu}_{t-1} + \mathbf{u}_t \\
+\bar{\boldsymbol{\Sigma}}_t &= \mathbf{G}_t \boldsymbol{\Sigma}_{t-1} \mathbf{G}_t^T + \mathbf{R}_t = \boldsymbol{\Sigma}_{t-1} + \mathbf{R}_t
+\end{align*}
+(Note: $\mathbf{G}_t = \mathbf{I}$, so this simplifies)
 
+\subsubsection*{CORRECTION STEP (for each beacon measurement $j$):}
 
+\textbf{1) Compute expected measurement:}
+\[
+\hat{z}_t^j = \sqrt{(\bar{\mu}_{t,x} - m_x^j)^2 + (\bar{\mu}_{t,y} - m_y^j)^2 + (\bar{\mu}_{t,z} - m_z^j)^2}
+\]
 
+\textbf{2) Compute measurement Jacobian:}
+\begin{align*}
+\Delta x &= \bar{\mu}_{t,x} - m_x^j \\
+\Delta y &= \bar{\mu}_{t,y} - m_y^j \\
+\Delta z &= \bar{\mu}_{t,z} - m_z^j \\
+r &= \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2} \\
+\mathbf{H}_t^j &= \begin{bmatrix} \frac{\Delta x}{r} & \frac{\Delta y}{r} & \frac{\Delta z}{r} \end{bmatrix}
+\end{align*}
 
+\textbf{3) Innovation covariance:}
+\[
+S_t^j = \mathbf{H}_t^j \bar{\boldsymbol{\Sigma}}_t (\mathbf{H}_t^j)^T + Q_j \quad \text{(scalar)}
+\]
 
+\textbf{4) Kalman gain:}
+\[
+\mathbf{K}_t^j = \bar{\boldsymbol{\Sigma}}_t (\mathbf{H}_t^j)^T (S_t^j)^{-1} \quad \text{($3 \times 1$ vector)}
+\]
 
+\textbf{5) Update mean:}
+\[
+\bar{\boldsymbol{\mu}}_t = \bar{\boldsymbol{\mu}}_t + \mathbf{K}_t^j (z_t^j - \hat{z}_t^j)
+\]
 
+\textbf{6) Update covariance:}
+\[
+\bar{\boldsymbol{\Sigma}}_t = (\mathbf{I} - \mathbf{K}_t^j \mathbf{H}_t^j) \bar{\boldsymbol{\Sigma}}_t
+\]
 
+\textbf{After all measurements:}
+\begin{align*}
+\boldsymbol{\mu}_t &= \bar{\boldsymbol{\mu}}_t \\
+\boldsymbol{\Sigma}_t &= \bar{\boldsymbol{\Sigma}}_t
+\end{align*}
+
+\subsection*{KEY INSIGHTS:}
+\begin{enumerate}
+\item \textbf{Motion model is LINEAR} $\Rightarrow$ $\mathbf{G}_t = \mathbf{I}$ (no linearization error in prediction)
+\item \textbf{Measurement model is NONLINEAR} $\Rightarrow$ Need Jacobian $\mathbf{H}_t^j$
+\item \textbf{Range-only measurements} (no bearing) $\Rightarrow$ Each beacon gives distance only
+\item \textbf{Multiple beacons} improve localization (triangulation in 3D)
+\item \textbf{Known correspondence} $\Rightarrow$ We know which beacon sent each signal
+\end{enumerate}
 \end{document}
-

@@ -69,13 +69,31 @@ Uncertain camera pose in map reference frame:
   \caption{Visualizing Uncertainty}\label{fig:Visualizing Uncertainty}
 \end{figure}
 
+Expanding the notation
+\begin{align*}
+  \mathbf{T}_{MC} &= \mathbf{T}_{MR} \mathbf{T}_{RC} \\
+  \mathbf{T}_{MC} & = \begin{bmatrix} \mathbf{R}(\theta + \Delta \theta) & \mathbf{p}+\mathbf{\Delta p} \\ \mathbf{0} & 1 \end{bmatrix} \begin{bmatrix} \mathbf{R}(\psi) & \mathbf{t} \\ \mathbf{0} & 1 \end{bmatrix} \\
+  \mathbf{T}_{MC} & = \begin{bmatrix} \mathbf{R}(\theta + \psi + \Delta \theta) & \mathbf{R}(\theta + \Delta \theta)\mathbf{t} + \mathbf{p}+\mathbf{\Delta p} \\ \mathbf{0} & 1 \end{bmatrix}
+\end{align*}
+
+We can see that, the rotation uncertainty does not change, however we have added a new term to the position in the form of $ \mathbf{R}(\theta + \Delta \theta)\mathbf{t}$ which forms the "banana shape". The original position uncertainty also remained.\\
+
+Linearizing:
+\begin{align*}
+  \mathbf{n} &= \mathbf{R}(\theta + \Delta \theta)\mathbf{t} \\
+  \mathbf{n} & = \begin{bmatrix}n_x \\ n_y \end{bmatrix} =  \begin{bmatrix}t_x\cos(\theta + \Delta \theta) - t_y \sin(\theta + \Delta \theta) \\ t_x\sin(\theta + \Delta \theta) + t_y \cos(\theta + \Delta \theta) \end{bmatrix} \\
+            &  \text{Using small angle approximations} \\
+  \mathbf{n} & = \begin{bmatrix}n_x \\ n_y \end{bmatrix} =  \mathbf{R}(\theta) \begin{bmatrix} t_x \\ t_y \end{bmatrix} - \mathbf{R}(\theta -\frac{\pi}{2}) \begin{bmatrix} t_x \\ t_y \end{bmatrix} \Delta \theta\\
+\end{align*}
+
 Putting it together, we get:
 \begin{equation}
-  \mathbf{T}_{MC} = \begin{bmatrix} \mathbf{R}(\theta + \phi + \Delta \theta) & \mathbf{R}(\theta) \mathbf{t} + \mathbf{p} - \mathbf{R}(\theta - \frac{\pi}{2}) \Delta \theta + \mathbf{\Delta p}) \\
+  \mathbf{T}_{MC} = \begin{bmatrix} \mathbf{R}(\theta + \phi + \Delta \theta) & \mathbf{R}(\theta) \mathbf{t} + \mathbf{p} - \mathbf{R}(\theta - \frac{\pi}{2})\mathbf{t} \Delta \theta + \mathbf{\Delta p}) \\
                   \mathbf{0} & 1
   \end{bmatrix}
   \label{eq:position uncertainty}
 \end{equation}
+\\
 \begin{itemize}
   \item Position uncertainty has two components:
   \begin{itemize}
@@ -121,3 +139,143 @@ R_{z,\theta} &= \begin{bmatrix}
 0 & 0 & 1
 \end{bmatrix}
 \end{align*}
+
+\newpage
+\subsection{General 3D Rotation}
+
+A straightforward approach would be to compose basic rotations: Euler angles, yaw-pitch-roll, where the order matters and the choise of rotation of stationary frame.
+A set of rotation matrices and matrix multiplication form a group that we call \textbf{SO(3) group}.\\
+
+\subsubsection{Axis-Angle Representation}
+Based on Euler Rotation Theorem:
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.7\textwidth]{images/axisangle.png}
+  \end{center}
+  \caption{Euler Angle Representation}\label{fig:Euler Angles}
+\end{figure}
+
+\subsubsection{Unit Quaternions}
+Quaternions are an extension of complex numbers, which represent algebra on axis-angle representation.
+The quaternion product is a composition of rotations, which also forms an SO(3) group.
+
+\begin{align*}
+  \mathbf{q} &= \cos \frac{\theta}{2} + \sin \frac{\theta}{2} (k_x \mathbf{i} + k_y \mathbf{j} + k_z \mathbf{k}) \\
+  \mathbf{i}^2 &= \mathbf{j}^2 = \mathbf{k}^2 = \mathbf{ijk} = -1
+\end{align*}
+
+\subsubsection{Rotation Matrices}
+Properties of rotation matrices
+\begin{itemize}
+  \item multiplication is associative, but not commutative
+  \item it is commutative in 2D, SO(2) group
+  \item $\det (\mathbf{R}) = 1$ (for right-hand coordinate systems)
+  \item Columns are orthogonal unit vectors
+  \item $\mathbf{R}^{-1} = \mathbf{R}^T$
+\end{itemize}
+
+\subsubsection{Angular Velocity}
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.3\textwidth]{images/angular_vel.png}
+  \end{center}
+  \label{fig:Angular velocity}
+\end{figure}
+
+Which way are the x, y, and z vectors spinning?
+\begin{align*}
+  \dot{\bf{x}} &= \bf{k}\omega \times \bf{x} \\
+  \dot{\bf{y}} &= \bf{k}\omega \times \bf{y} \\
+  \dot{\bf{z}} &= \bf{k}\omega \times \bf{z}
+\end{align*}
+
+What about projections of the axes of the rotating frame?
+\begin{align*}
+  \bf{R} &= [\bf{r}_1 \ \ \bf{r}_2 \ \ \bf{r}_3] \\
+  \bf{\dot{R}} & = [\bf{\dot{r}}_1 \ \ \bf{\dot{r}}_2 \ \ \bf{\dot{r}}_3] \\
+  \bf{\omega}_k &= \bf{k} \omega \\
+  \bf{\dot{R}} &= \bf{\omega}_k \times \bf{R}
+\end{align*}
+
+\subsubsection{Exponential Coordinates}
+To get rid of the cross product
+\begin{align*}
+  \dot{\mathbf{R}} & = \omega_k \times \mathbf{R} \\
+  \dot{\mathbf{R}} & = \lfloor \omega_k \rfloor \times \mathbf{R} \\
+  \lfloor \omega_k \rfloor &= \begin{bmatrix} 0 & -\omega_z & \omega_y \\ \omega_z & 0 & \omega_x \\ -\omega_y & \omega_x & 0\end{bmatrix}
+\end{align*}
+
+Formulate this problem:
+Frame is rotating at angular velocity $\omega$ around $k$.
+Its initial orientation is described by $R(0)$.
+What will its orientation $R(t)$ be after time $t$? \\
+
+Answer? Solve the above differential equation!
+\newpage
+\subsubsection{Exponential Mapping}
+Solution to $ \dot{\mathbf{R}} = \lfloor \omega_k \rfloor \times \mathbf{R}$ is:
+\begin{equation}
+  {\mathbf{R}}(t) = e^{\lfloor \omega_k \rfloor t} \ \mathbf{R}(0) = e^{\lfloor \theta_k(t) \rfloor }\mathbf{R}(0)
+  \label{eq:exponential mapping}
+\end{equation}
+
+What is $\exp\left\{{\lfloor \omega_k \rfloor t}\right\}$? We can use Taylor expansion to figure it out, by using convenient property that $\lfloor k \rfloor ^3 = - \lfloor k \rfloor$ (k is a unit vector).
+Get the Rodrigues formula:
+\begin{equation}
+  e^{\lfloor \theta_k(t) \rfloor } = I + \lfloor k \rfloor \sin \theta + \lfloor k \rfloor ^2 (1-\cos \theta)
+  \label{eq:Rodrigues formula}
+\end{equation}
+
+\begin{itemize}
+  \item Frame orientation at time 0 is described by $\mathbf{R}(0)$
+  \item Frame is rotating around axis $\mathbf{k}$ in \textbf{global} frame at rate $\omega$
+  \item Vector $\omega_k = \omega \mathbf{k}$ is called \textbf{exponential coordinates}.
+  \item Why? Because it is used in exponential mapping $e^{\lfloor \omega_k \rfloor }$
+  \item The operator $\lfloor x \rfloor$ is a skew-symmetric matrix of vector x.
+  \item Angular velocity integrates in exponential coordinate space, $\lfloor \theta_k(t) \rfloor = \lfloor \omega_k \rfloor t$, before mapping!
+  \item We can use the Rodrigues formula to calculate the mapping.
+  \item So at time $t$, we have $\mathbf{R}(t) = e^{\lfloor \theta_k(t) \rfloor} \mathbf{R}(0)$
+  \item Rotation is around $k$ in fixed frame so multiplication is on the left!
+\end{itemize}
+
+\subsubsection{Covariance of Rotations}
+
+What do the rows and columns in covariance matrix represent?\\
+Variance and covariance of exponential coordinates tangential to the rotation.\\
+We are looking at the point in SO(3) space but expressing its variations in so(3) space.\\
+
+\textbf{Covariance after rotation:}
+\begin{align*}
+  \tilde{R}_{mb} &= D_m R_{mb} \\
+  \tilde{R}_{mb} &= e^{\lfloor \delta \rfloor} R_{mb} \\
+  R_{wm} \tilde{R}_{mb} &= R_{wm}e^{\lfloor \delta \rfloor} R_{mb} \\
+  \tilde{R}_{mb} &= R_{wm}e^{\lfloor \delta \rfloor} R_{wm}^{-1} R_{wm} R_{mb} \\
+  \tilde{R}_{mb} &= R_{wm}e^{\lfloor \delta \rfloor} R_{wm}^{-1} R_{wb} \\
+  \tilde{R}_{mb} &= e^{\lfloor R_{wm}\delta \rfloor} R_{wb} \\
+\end{align*}
+
+Exponential coordinates of the disturbance have been rotated!\\
+
+\textbf{Rotation Inversion:}
+\begin{align*}
+  \tilde{R}_{mb} &= e^{\lfloor \delta \rfloor} R_{mb} \\
+  \tilde{R}_{mb}^{-1} &= R_{mb}^{-1} e^{\lfloor -\delta \rfloor}  \\
+  \tilde{R}_{mb}^{-1} &= R_{mb}^{-1} e^{\lfloor -\delta \rfloor} R_{mb} R_{mb}^{-1} \\
+  \tilde{R}_{mb}^{-1} &= e^{\lfloor -R_{mb}^T \delta \rfloor} R_{mb}^{-1} \\
+\end{align*}
+
+Covariance is quadratic, so negative sign does not change it.
+Hence $\Sigma_{inv} = R_{mb}^T \Sigma R_{mb}$
+
+\begin{itemize}
+  \item Have uncertain rotation $R_1$ with covariance $\Sigma_1$
+  \item Apply deterministic rotation $R$ in global frame
+  \item Composite rotation is $RR_1$ with covariance $R\Sigma_1 R^T$
+  \item If rotation is in local frame, covariance is unchanged
+  \item If both rotations are uncertain, $(R_1, \Sigma_1)$ and $(R, \Sigma)$ and we rotate $R_1$ by $R$ in global frame, the resulting covariance is
+    $\Sigma + R \Sigma_1 R^T$
+  \item Inversion expresion looks similar
+\end{itemize}
+
+

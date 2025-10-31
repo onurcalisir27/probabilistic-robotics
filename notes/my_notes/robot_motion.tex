@@ -1,0 +1,217 @@
+\section{Robot Motion}
+
+\subsection{Kinematic Configuration}
+\textit{Kinematics} is the calculus of describing the effect of control actions oon the configuration of a robot. The configuration of a rigid mobile robot is commonly
+described by six variables, its three-dimensional Cartesian coordinates, and its three Euler angles (roll, pitch yaw) relative to an external coordinate frame.
+We will stick with mobile robots operating in planar environments, whose kinematic state is summarized by three variables, referred to as pose in this context.\\
+
+The pose of a mobile robot operating in a plane is comprised of two-dimensional planar coordinates relative to an external coordinate frame, along with its angular orientation.
+The pose of the robot is described by the following vector $\begin{bsmallmatrix}x \\ y \\ \theta \end{bsmallmatrix}$.
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{images/robot_pose.png}
+  \end{center}
+  \caption{Robot pose, shown in global coordinate system}\label{fig:Robot Pose}
+\end{figure}
+
+The orientation of a robot is often called bearing or heading direction. The pose without orientation is called location.
+The pose and the locations of objects in the environment may constitute the kinematic state $x_t$ of the robot-environment system.
+
+\subsection{Probabilistic Kinematics}
+The probabilistic kinematics model, or motion model plays the role of the state transition model in mobile robotics. This model is the familiar conditional density $\pcond{x_t}{u_t, x_{t-1}}$.\\
+
+Here $x_t \ \text{and } x_{t-1}$ are both robot poses, and $u_t$ is a motion command. This model describes the posterior distribution over kinematic states that a robot assumes when executing the motion command $u_t$ at $x_{t-1}$.
+We will discuss in detail two specific probabilistic motion models, both for mobile robots operating in the plane.
+The first assumes taht the motion data $u_t$ specifies the velocity commands given to the robot's motors. Many commerical mobile robots are actuated by independent translational and rotational velocities.
+The second model assumes that one has access to odometry information.\\
+
+In practice, odometry models tend to be more accurate than velocity models, for the simple reason that most commercial robots do not execute velocity commands with the level of accuracy that can be obtained by measuring the revolution of the robots wheels.
+However, odometry is only available after executing a motion command, hence it cannot be used for motion planning. Thus, odometry models are usualy applied for estimation, whereas velocity models are used for probabilistic motion planning.
+
+\newpage
+
+\subsection{Velocity Motion Model}
+The velocity motion model assumes that we can control a robot through two velocities, a rotational and a translational velocity.
+We denote the translational velocity at time $t$ by $v_t$ and the rotational velocity by $\omega_t$. Hence we have $u_t = \begin{bsmallmatrix} v_t \\ \omega_t \end{bsmallmatrix}$.
+We arbitrarily postulate that the positive rotational velocities induce a counterclockwise rotation, and that positive translational velocities correspond to forward motion.\\
+
+\subsubsection{Closed Form Calculation}
+It is possible to create an algorithm for computing the probability $\pcond{x_t}{u_t, x_{t-1}}$ of being at $x_t$ after executing $u_t$ begining at state $x_{t-1}$, assuming that the control is carried out for the fixed duration $\Delta t$.
+The parameters $\alpha_1 \text{ to } \alpha_6$ are robot-specific motion error parameters.\\
+
+The algorithm first calculates the controls of an error-free robot; the meaning of the individual variables in this calculation will become
+more apparent below, when we derive it. These parameters are given by $\hat{v} \ \text{and } \hat{\omega}$.
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{images/motion_model_velocity.png}
+  \end{center}
+  \caption{Algorithm for computing $\pcond{x_t}{u_t,x_{t-1}}$ based on velocity information} \label{fig:motion_model_velocity}
+\end{figure}
+
+The function $\mathbf{prob}(x,b^2)$ models the motion error. It computes the probability of its parameter x under a zero-centered random variable with variance $b^2$.
+If we considered a normal distribution, it would be given by:
+\begin{equation}
+  \mathbf{prob}(a, b^2) = \frac{1}{\sqrt{2 \pi b^2}} \exp \left\{-\frac{1}{2} \frac{a^2}{b^2} \right\}
+  \label{eq:prob normal distribution}
+\end{equation}
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{images/vel_motion_model_noise.png}
+  \end{center}
+  \caption{The velocity motion model, for different noise parameter settings}\label{fig:vel_motion_model_noise}
+\end{figure}
+
+Figure~\ref{fig:vel_motion_model_noise} shows graphical examples of the velocity motion model, projected into $x-y$ space. In all three cases, the robot set the same translational and angular velocity.
+Figure~\ref{fig:vel_motion_model_noise}a shows the resulting distribution wiht moderate error parameters $\alpha_1 \text{ to } \alpha_6$. The distributions shown in Figure~\ref{fig:vel_motion_model_noise}b is obtained with smaller angular error (parameters $\alpha_3$ and $\alpha_4$) but larger translational error (parameters $\alpha_1$ and $\alpha_2$).
+Figure~\ref{fig:vel_motion_model_noise}c shows the distribution under large angular and small translationa error.
+
+\subsubsection{Mathematical Derivation of the Velocity Motion Model}
+
+The derivation beings with a generative model of robot motion, and then derives formulae for computing $\pcond{x_t}{u_t, x_{t-1}}$ for arbitrary $x_t$, $u_t$, and $x_{t-1}$.\\
+
+\textbf{Exact Motion}\\
+
+Before turning to the probabilistic case, let us begin by stating the kinematics for an ideal, noise free robot. Let $u_t = (v \ \omega)^T$ denote the control at time $t$.
+If both velocities are kept at a fixed alue for the entire time interval $(t-1, t]$, the robot moves on a circle with radius:
+\begin{equation}
+  r= \left| \frac{v}{\omega} \right|
+  \label{eq:arc motion radius}
+\end{equation}
+
+This follows the general relationship between the translational and rotational velocities $v$ and $/omega$ for an arbitrary object moving on a circular trajectory with radius $r$:
+\begin{equation}
+  v = \omega \cdot r
+  \label{eq:linear to angular velocity}
+\end{equation}
+Equation~(\ref{eq:arc motion radius}) encompasses the case where the robot does not turn at all (i.e., $\omega=0$), in which case the robot moves on a straight line. A straight line corresponds to a circle with infinite radius, hence we note that $r$ may be infinite.\\
+
+Let $x_{t-1} = (x,\ y,\ \theta)^T$ be the initial pose of the robot, and suppose we keep the velocity constant at $u_t = (v \ \omega)^T$ for some time $\dt$. We can show that the center of the circle is at:
+\begin{align}
+  x_c &= x - \frac{v}{\omega}\sin \theta \\
+  y_c &= y + \frac{v}{\omega}\cos \theta
+\end{align}
+
+The variables $(x_c \ y_c)^T$ denote this coordinate. After $\dt$ time of motion, our ideal robot will be at $x_t =  (x', \ y', \theta')^T$ with
+\begin{align}
+  \begin{pmatrix}x' \\ y' \\ \theta' \end{pmatrix} &= \begin{pmatrix}x_c + \frac{v}{\omega}\sin \theta \\ y_c - \frac{v}{\omega}\cos \theta\\ \theta + \omega \dt \end{pmatrix} \\
+                                                   &= \begin{pmatrix}x \\ y \\ \theta \end{pmatrix} + \begin{pmatrix}-\frac{v}{\omega}\sin \theta + \frac{v}{\omega}\sin (\theta + \omega \dt) \\ \frac{v}{\omega}\cos \theta- \frac{v}{\omega}\cos (\theta+\omega \dt )\\ \omega \dt \end{pmatrix}
+  \label{eq:ideal motion model}
+\end{align}
+
+Of course, real robots cannot jump from one velocity to another, and keep velocity constant in each time interval. To compute the kinematics with nonconstant velocities, it is therefore common practice to use small values for
+$\dt$, and to approximate the actual velocity by a constant within each time interval. The (approximate) final pose is then obtained by concatenating the corresponding cyclic trajectories using the mathematical equations just stated.
+
+\textbf{Real Motion}\\
+
+In reality, robot motion is subject to noise. The actual velocities differ from the commanded ones (or measured ones, if the robot possesses a sensor for measuring velocity). We will model this difference by a zero-centered random variable with finite variance. More precisely, let us assume the actual velocities are given by:
+\begin{equation}
+  \begin{pmatrix}\hat{v} \\ \hat{\omega} \end{pmatrix} = \begin{pmatrix}v \\ \omega \end{pmatrix} + \begin{pmatrix} \epsilon_{\alpha_1v^2 + \alpha_2 \omega_2} \\ \epsilon_{\alpha_3 v^2 + \alpha_4 \omega^2}\end{pmatrix}
+  \label{eq:noisy velocities}
+\end{equation}
+
+Here $\epsilon_{b^2}$ is a zero-mean error variable with variance $b^2$. Thus, the true velocity equals the commanded velocity plus some small, additive error (noise).
+In our model, the standard deviation of the error is proportional to the commanded velocity. The parameters $\alpha_1$ to $\alpha_4$ are robot-specific error parameters.
+They model the accuracy of the robot. The less accurate the robot, the larger these parameters.
+
+A better model of the actual pose is thus given by:
+\begin{equation}
+  \begin{pmatrix}x' \\ y' \\ \theta' \end{pmatrix} = \begin{pmatrix}x \\ y \\ \theta \end{pmatrix} + \begin{pmatrix}-\frac{\hat{v}}{\hat{\omega}}\sin \theta + \frac{\hat{v}}{\hat{\omega}}\sin (\theta + \omega \dt) \\
+  \frac{\hat{v}}{\hat{\omega}}\cos \theta- \frac{\hat{v}}{\hat{\omega}}\cos (\hat\theta+\omega \dt )\\ \hat{\omega} \dt \end{pmatrix}
+  \label{eq:noisy motion model}
+\end{equation}
+
+
+\newpage
+
+
+\subsection{Odometry Motion Model}
+
+The velocity motion model discussed thus far uses the robot's velocity to compute posteriors over poses. Alternatively, one might want to use the odometry measurements as the bassis for calculating the robot's motion over time.
+Odomtery is commonly obtained by integrating wheel encoder information; most commerical robots make such integrated pose estimation available in periodic time intervals.
+This leads to a second motion model: the odometry motion model. This model uses odometry measurements in lieu of controls.\\
+
+Practical experience suggests that odometry, while still erroneous, is usually more accurate then velocity.
+Both suffer from drift and slippage, but velocity additionaly suffers from mismatch between ethe actual motion controllers and its crude mathematical model.
+However, odometry is only available in retrospect, after the robot moded. This poses no problem for filter algorithms, however makes this information unusuable for accurate motion planning and control.
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{images/odom_model.png}
+  \end{center}
+  \caption{Odometry Model: The robot motion in the time interval $(t-1, t]$ is approximated by a rotation $\delta_{rot1}$ followed by a translation $\delta_{trans}$ and a second rotation $\delta_{rot2}$. The turns and translations are noisy}\label{fig:Odomtery Model}
+\end{figure}
+
+\subsubsection{Closed Form Calculation}
+
+Technically, odometric information are sensor measurements, not controls. To model odometry as measurements, the resulting Bayes filter would have to include the actual velocity as state variables, which increases the dimension of the state space.
+To keep the state space small, it is comomon to consider odometry data as if it were control signals. In this section, odometry measurements will be treated just like controls.
+The resulting model is at the core of many of today's best probabilistic robot systems.\\
+
+At time $t$, the correct pose of the robot is modeled by the random variable $x_t$. The robot odometry estimates this pose, however due to drift and slippage there is no fixed
+coordinate transformation between the coordinates used by the robot's internal odometry and the physical world coordinates. In fact, knowing this transformation would solve the robot localization problem.\\
+
+The odometry model uses the relative motion information, as measured by the robot's internal odometry. More specifically, in the time interval $(t-1,t]$, the robot advances from a pose $x_{t-1}$ to pose $x_t$.
+The odometry reports back to us a related advance from $\bar{x}_{t-1}= (\bar{x} \ \bar{y} \ \bar{\theta})^T$ to $\bar{x}_{t} = (\bar{x}' \ \bar{y}' \ \bar{\theta}')^T$
+Here the bar indicates that these are odometry measurements embedded in a robot-internal coordinate whose relation to the global world coordinates is unknown. \\
+
+The key insight for utilizing this information in state estimation is that the relative difference between $\bar{x}_{t-1}$ and $\bar{x}_t$, under an appropriate definition of the term "difference" is a good estimator for the difference of the true poses $x_{t-1}$ and $x_t$.
+The motion information $u_t$ is thus given by the pair
+\begin{equation}
+  u_t = \begin{psmallmatrix} \bar{x}_{t-1} \\ \bar{x}_{t}\end{psmallmatrix}
+  \label{eq:odom motion information}
+\end{equation}
+
+To extract relative odometry, $u_t$ is transformed into a sequence of three steps: a rotation, followed by a straight line motion (translation), and another rotation.
+Figure~\ref{fig:Odomtery Model} illustrates this decomposition. Each pair of positions $(\bar{s} \ \bar{s}')$ has a unique parameter vector $(\delta_{rot1} \ \delta_{trans} \ \delta{rot2})$, and these parameters are sufficient to reconstruct the relative motion between them.
+Thus these parameters form together a sufficient statistics of the relative motion encoded by the odometry. \\
+
+The probabilistic motion model assumes that these three parameters are corrupted by independent noise. Below is the algorithm for calculating this density in closed form.
+This algorithm accepts as an input an initial pose $x_{t-1}$, a pair of poses $u_t = (\bar{x}_{t-1}\ \bar{x}_t)^T$ obtained from the robots odometry, and a hypothesized final pose $x_t$.
+It outputs the numerical probability $\pcond{x_t}{u_t, x_{t-1}}$.
+
+\begin{algorithm}[H]
+\caption{Odometry Motion model}
+\KwInput{$x_{t-1}$, $u_t$, $x_t$}
+\KwOutput{$\pcond{x_t}{u_t,x_{t-1}}$}
+
+\BlankLine
+$\delta_{rot1} = \arctan2(\bar{y}' - \bar{y}, \bar{x}' - \bar{x}) - \bar{\theta}$\\
+$\delta_{trans} = \sqrt{(\bar{y}' - \bar{y})^2+(\bar{x}' - \bar{x})^2}$\\
+$\delta_{rot2} = \bar{\theta}' - \bar{\theta} - \delta_{rot1}$\\
+
+\BlankLine
+
+$\hat{\delta}_{rot1} = \arctan2(y' - y, x' - x) - \theta$\\
+$\hat{\delta}_{trans} = \sqrt{(y' - y)^2+(x' - x)^2}$\\
+$\hat{\delta}_{rot2} = \theta' - \theta - \delta_{rot1}$\\
+
+\BlankLine
+
+$p_1 = \mathbf{prob}(\delta_{rot1} - \hat{\delta}_{rot1},\ \alpha_1 \hat{\delta}_{rot1}^2 + \alpha_2 \hat{\delta}_{trans}^2)$\\
+$p_2 = \mathbf{prob}(\delta_{trans} - \hat{\delta}_{trans},\ \alpha_3 \hat{\delta}_{trans}^2 + \alpha_4 \hat{\delta}_{rot1}^2 + \alpha_4 \hat{\delta}_{rot1}^2)$\\
+$p_3 = \mathbf{prob}(\delta_{rot2} - \hat{\delta}_{rot2},\ \alpha_1 \hat{\delta}_{rot2}^2 + \alpha_2 \hat{\delta}_{trans}^2)$\\
+
+\Return{$p_1 \cdot p_2 \cdot p_3$}
+\end{algorithm}
+
+As above, the function $\mathbf{prob}(a,b^2)$ implements an error distribution over $a$ with zero mean and variance $b^2$.
+Here the implementer must observe that all angular differences must lie in $[-\pi, \pi]$.
+Hence the outcome of $\delta_{rot2} - \bar{\delta}_{rot2}$ has to be truncated correspondingly a common error that tends to be difficult to debug.
+The last step assumes independence between the different error sources. The variables $\alpha_1$ through $\alpha_4$ are robot-specific parameters that specify the noise in robot motion.
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.6\textwidth]{images/odom_motion_model_noise.png}
+  \end{center}
+  \caption{The odometry motion model, for different noise parameter settings}
+  \label{fig:odom_motion_model_noise}
+\end{figure}
+
+Figure~\ref{fig:odom_motion_model_noise} shows examples of our odometry motion model for different values of the error parameters $\alpha_1$ through $\alpha_4$.
+The distribution in Figure~\ref{fig:odom_motion_model_noise}a is atypical one, whereas the ones shown in Figure~\ref{fig:odom_motion_model_noise}b and Figure~\ref{fig:odom_motion_model_noise}c indicate unusually large translational and rotational errors, respectively.\\
+
+Comparing the odometry motion model against the velocity motion model, we observe that the smaller the time between two consecutive measurements, the more similar those different motion models. Thus, if the belief is updated
+frequently e.g., every tenth of a second for a conventional indoor robot, the difference between these motion models is not very significant.
+
+

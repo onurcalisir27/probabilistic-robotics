@@ -1,0 +1,554 @@
+% ============================================================================
+% ROBOT MOTION - EXAM NOTES
+% Focus: Motion models (velocity & odometry), noise parameters
+% ============================================================================
+
+\section{Quick Reference: Robot Motion Models}
+
+\begin{tcolorbox}[colback=yellow!10!white,colframe=orange!75!black,title=\textbf{Robot Motion Models - Fast Reference}]
+
+\textbf{Pose Representation:} $x = \begin{bmatrix} x \\ y \\ \theta \end{bmatrix}$ (position + orientation)
+
+\vspace{3mm}
+\textbf{Two Motion Models:}
+
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Aspect} & \textbf{Velocity Model} & \textbf{Odometry Model} \\
+\hline
+Input $u_t$ & $(v_t, \omega_t)$ - commanded velocities & $(\bar{x}_{t-1}, \bar{x}_t)$ - poses from encoders \\
+Accuracy & Less accurate & More accurate \\
+Availability & Before motion (predictive) & After motion (retrospective) \\
+Use case & Motion planning & State estimation \\
+\hline
+\end{tabular}
+
+\vspace{3mm}
+\textbf{Velocity Motion Model:}
+\begin{align*}
+u_t &= \begin{bmatrix} v \\ \omega \end{bmatrix}, \quad r = \left|\frac{v}{\omega}\right| \quad \text{(circular motion radius)} \\
+x_t &= x_{t-1} + \begin{bmatrix}
+-\frac{\hat{v}}{\hat{\omega}}\sin\theta + \frac{\hat{v}}{\hat{\omega}}\sin(\theta + \hat{\omega}\Delta t) \\
+\frac{\hat{v}}{\hat{\omega}}\cos\theta - \frac{\hat{v}}{\hat{\omega}}\cos(\theta + \hat{\omega}\Delta t) \\
+\hat{\omega}\Delta t
+\end{bmatrix}
+\end{align*}
+where $\hat{v} = v + \epsilon_{\alpha_1 v^2 + \alpha_2 \omega^2}$, $\hat{\omega} = \omega + \epsilon_{\alpha_3 v^2 + \alpha_4 \omega^2}$
+
+\vspace{3mm}
+\textbf{Odometry Motion Model Decomposition:}
+\begin{itemize}
+    \item Rotation 1: $\delta_{rot1} = \arctan2(\bar{y}' - \bar{y}, \bar{x}' - \bar{x}) - \bar{\theta}$
+    \item Translation: $\delta_{trans} = \sqrt{(\bar{x}' - \bar{x})^2 + (\bar{y}' - \bar{y})^2}$
+    \item Rotation 2: $\delta_{rot2} = \bar{\theta}' - \bar{\theta} - \delta_{rot1}$
+\end{itemize}
+
+\vspace{3mm}
+\textbf{Noise Parameters:}
+\begin{itemize}
+    \item Velocity: $\alpha_1, \alpha_2$ affect translation, $\alpha_3, \alpha_4$ affect rotation
+    \item Odometry: $\alpha_1, \alpha_2$ affect rotations, $\alpha_3, \alpha_4$ affect translation
+    \item Larger $\alpha$ = more uncertainty
+\end{itemize}
+
+\vspace{3mm}
+\textbf{Probability Function:}
+$$\text{prob}(a, b^2) = \frac{1}{\sqrt{2\pi b^2}} \exp\left\{-\frac{a^2}{2b^2}\right\} = \mathcal{N}(a; 0, b^2)$$
+
+\end{tcolorbox}
+
+% ============================================================================
+\section{Robot Kinematics and Pose}
+% ============================================================================
+
+\subsection{Kinematic Configuration}
+
+\textbf{Kinematics} describes how control actions affect robot configuration.
+
+\textbf{For planar mobile robots:}
+\begin{itemize}
+    \item \textbf{Pose:} $x = \begin{bmatrix} x & y & \theta \end{bmatrix}^T$
+    \begin{itemize}
+        \item $(x, y)$ - 2D position in global frame
+        \item $\theta$ - orientation (heading/bearing) relative to x-axis
+    \end{itemize}
+    \item \textbf{Location:} Pose without orientation = $(x, y)$
+\end{itemize}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.4\textwidth]{images/robot_pose.png}
+  \end{center}
+  \caption{Robot pose in global coordinate system}
+\end{figure}
+
+\subsection{Probabilistic Motion Model}
+
+The \textbf{motion model} specifies the state transition probability:
+\begin{equation}
+p(x_t \mid u_t, x_{t-1})
+\end{equation}
+
+This describes the probability distribution over poses $x_t$ that result from:
+\begin{itemize}
+    \item Starting at pose $x_{t-1}$
+    \item Executing control $u_t$
+\end{itemize}
+
+\textbf{Key Insight:} Robot motion is inherently uncertain due to:
+\begin{itemize}
+    \item Wheel slippage
+    \item Uneven terrain
+    \item Control inaccuracies
+    \item Systematic errors
+\end{itemize}
+
+% ============================================================================
+\section{Velocity Motion Model}
+% ============================================================================
+
+\subsection{Overview}
+
+\textbf{Control input:} $u_t = \begin{bmatrix} v_t \\ \omega_t \end{bmatrix}$
+\begin{itemize}
+    \item $v_t$ - translational (linear) velocity [m/s]
+    \item $\omega_t$ - rotational (angular) velocity [rad/s]
+    \item Positive $v$ = forward, positive $\omega$ = counterclockwise
+\end{itemize}
+
+\textbf{Use case:} When you have velocity commands (motion planning, prediction)
+
+\subsection{Exact Kinematics (No Noise)}
+
+For constant velocities $(v, \omega)$ over time interval $\Delta t$:
+
+\textbf{Motion on a circle:}
+\begin{equation}
+r = \left|\frac{v}{\omega}\right| \quad \text{(radius of circular trajectory)}
+\end{equation}
+
+Special case: $\omega = 0 \Rightarrow r = \infty$ (straight line)
+
+\textbf{Circle center:} Starting from $x_{t-1} = (x, y, \theta)^T$:
+\begin{align}
+x_c &= x - \frac{v}{\omega}\sin\theta \\
+y_c &= y + \frac{v}{\omega}\cos\theta
+\end{align}
+
+\textbf{Final pose after $\Delta t$:}
+\begin{equation}
+\boxed{
+\begin{bmatrix} x' \\ y' \\ \theta' \end{bmatrix} =
+\begin{bmatrix} x \\ y \\ \theta \end{bmatrix} +
+\begin{bmatrix}
+-\frac{v}{\omega}\sin\theta + \frac{v}{\omega}\sin(\theta + \omega\Delta t) \\
+\frac{v}{\omega}\cos\theta - \frac{v}{\omega}\cos(\theta + \omega\Delta t) \\
+\omega\Delta t
+\end{bmatrix}
+}
+\label{eq:ideal_velocity_motion}
+\end{equation}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[scale=0.8]
+    % Draw coordinate system
+    \draw[->] (-0.5,0) -- (5,0) node[right] {$x$};
+    \draw[->] (0,-0.5) -- (0,4) node[above] {$y$};
+
+    % Draw circular arc
+    \draw[thick, blue] (1,0.5) arc (-30:30:2);
+
+    % Start pose
+    \fill (1,0.5) circle (2pt);
+    \draw[->, thick, red] (1,0.5) -- (1.3,0.7) node[anchor=west] {$x_{t-1}$};
+
+    % End pose
+    \fill (3.46,1.5) circle (2pt);
+    \draw[->, thick, red] (3.46,1.5) -- (3.7,1.85) node[anchor=south] {$x_t$};
+
+    % Center
+    \fill[green!50!black] (2.5,2.5) circle (2pt) node[above right] {$(x_c, y_c)$};
+    \draw[dashed, green!50!black] (2.5,2.5) -- (1,0.5) node[midway, above] {$r$};
+
+    % Velocity arrows
+    \draw[->, thick, purple] (1.5,0.8) arc (-20:0:0.5) node[midway, right] {$\omega$};
+    \draw[->, thick, orange] (2,1) -- (2.3,1.3) node[midway, above] {$v$};
+
+\end{tikzpicture}
+\caption{Velocity motion model: robot follows circular arc}
+\end{figure}
+
+\subsection{Probabilistic Velocity Model (With Noise)}
+
+Real robots have errors in executing velocity commands.
+
+\textbf{Noise model:} Actual velocities differ from commanded:
+\begin{align}
+\hat{v} &= v + \epsilon_{\alpha_1 v^2 + \alpha_2 \omega^2} \\
+\hat{\omega} &= \omega + \epsilon_{\alpha_3 v^2 + \alpha_4 \omega^2} \\
+\hat{\gamma} &= \epsilon_{\alpha_5 v^2 + \alpha_6 \omega^2} \quad \text{(drift)}
+\end{align}
+
+where $\epsilon_{b^2}$ denotes a zero-mean Gaussian with variance $b^2$.
+
+\textbf{Noise characteristics:}
+\begin{itemize}
+    \item Error magnitude proportional to velocity magnitudes
+    \item $\alpha_1, \alpha_2$ - translational velocity error parameters
+    \item $\alpha_3, \alpha_4$ - rotational velocity error parameters
+    \item $\alpha_5, \alpha_6$ - drift error parameters
+\end{itemize}
+
+\subsection{Velocity Motion Model Algorithm}
+
+\begin{algorithm}[H]
+\caption{Velocity Motion Model: $p(x_t \mid u_t, x_{t-1})$}
+\KwInput{$x_t = (x', y', \theta')^T$, $u_t = (v, \omega)^T$, $x_{t-1} = (x, y, \theta)^T$}
+\KwOutput{Probability $p(x_t \mid u_t, x_{t-1})$}
+\BlankLine
+\tcp{Compute ideal (noise-free) control to reach $x_t$ from $x_{t-1}$}
+\BlankLine
+$\mu = \frac{1}{2}\left[\frac{(x - x')\cos \theta + (y - y') \sin \theta}{(y - y') \cos \theta - (x - x')\sin \theta}\right]$\;
+\BlankLine
+$x^* = \frac{x+x'}{2} + \mu (y-y')$\;
+\BlankLine
+$y^* = \frac{y+y'}{2} + \mu (x'-x)$\;
+\BlankLine
+$r^* = \sqrt{(x-x^*)^2 + (y-y^*)^2}$\;
+\BlankLine
+$\Delta \theta = \atantwo(y' - y^*,x'-x^*)- \atantwo(y-y^*, x-x^*)$\;
+\BlankLine
+$\hat{v} = \frac{\Delta \theta}{\dt} r^*$\;
+\BlankLine
+$\hat{\omega} = \frac{\Delta \theta}{\Delta t}$\;
+\BlankLine
+$\hat{\gamma} = \frac{\theta' - \theta}{\Delta t} - \hat{\omega}$\;
+
+\BlankLine
+\tcp{Compute probability based on difference from commanded velocities}
+$p_1 = \text{prob}(v - \hat{v}, \alpha_1 v^2 + \alpha_2 \omega^2)$\;
+$p_2 = \text{prob}(\omega - \hat{\omega}, \alpha_3 v^2 + \alpha_4 \omega^2)$\;
+$p_3 = \text{prob}(\hat{\gamma}, \alpha_5 v^2 + \alpha_6 \omega^2)$\;
+
+\BlankLine
+\Return{$p_1 \cdot p_2 \cdot p_3$}
+\end{algorithm}
+
+\textbf{Intuition:}
+\begin{enumerate}
+    \item Given: start pose $x_{t-1}$, commanded $(v, \omega)$, hypothesized end pose $x_t$
+    \item Compute: what velocities $(\hat{v}, \hat{\omega}, \hat{\gamma})$ would be needed to reach $x_t$?
+    \item Return: probability that commanded velocities resulted in needed velocities
+\end{enumerate}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.6\textwidth]{images/vel_motion_model_noise.png}
+  \end{center}
+  \caption{Velocity motion model for different noise parameters: (a) moderate noise, (b) large translational noise, (c) large rotational noise}
+\end{figure}
+
+% ============================================================================
+\section{Odometry Motion Model}
+% ============================================================================
+
+\subsection{Overview}
+
+\textbf{Control input:} $u_t = \begin{bmatrix} \bar{x}_{t-1} \\ \bar{x}_t \end{bmatrix}$ where $\bar{x} = (\bar{x}, \bar{y}, \bar{\theta})^T$
+\begin{itemize}
+    \item $\bar{x}_{t-1}$, $\bar{x}_t$ - poses from robot's internal odometry (wheel encoders)
+    \item Bar notation indicates odometry frame (not global frame)
+\end{itemize}
+
+\textbf{Key idea:}
+\begin{itemize}
+    \item Robot's internal odometry frame doesn't match global frame
+    \item But \textit{relative motion} in odometry frame approximates relative motion in global frame
+    \item Use odometry readings to estimate motion, not absolute position
+\end{itemize}
+
+\textbf{Use case:} State estimation after motion has occurred (more accurate than velocity model)
+
+\textbf{Why more accurate?}
+\begin{itemize}
+    \item Measures actual wheel rotations (not just commands)
+    \item No model mismatch between commanded and achieved velocities
+    \item Still suffers from drift and slippage (but less than velocity model)
+\end{itemize}
+
+\subsection{Odometry Decomposition}
+
+Any planar motion can be decomposed into: \textbf{Rotate → Translate → Rotate}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.45\textwidth]{images/odom_model.png}
+  \end{center}
+  \caption{Odometry motion decomposition into three steps}
+\end{figure}
+
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Odometry Decomposition Formulas]
+
+Given odometry readings $\bar{x}_{t-1} = (\bar{x}, \bar{y}, \bar{\theta})$ and $\bar{x}_t = (\bar{x}', \bar{y}', \bar{\theta}')$:
+
+\vspace{2mm}
+\textbf{Step 1: Initial rotation} (align with direction of translation)
+\begin{equation}
+\delta_{rot1} = \arctan2(\bar{y}' - \bar{y}, \bar{x}' - \bar{x}) - \bar{\theta}
+\end{equation}
+
+\textbf{Step 2: Translation} (straight-line distance)
+\begin{equation}
+\delta_{trans} = \sqrt{(\bar{x}' - \bar{x})^2 + (\bar{y}' - \bar{y})^2}
+\end{equation}
+
+\textbf{Step 3: Final rotation} (achieve final orientation)
+\begin{equation}
+\delta_{rot2} = \bar{\theta}' - \bar{\theta} - \delta_{rot1}
+\end{equation}
+
+\textbf{Important:} All angles must be normalized to $[-\pi, \pi]$
+
+\end{tcolorbox}
+
+\subsection{Probabilistic Odometry Model}
+
+Each of the three motion components ($\delta_{rot1}, \delta_{trans}, \delta_{rot2}$) is corrupted by noise:
+
+\textbf{Noise model:}
+\begin{align}
+\delta_{rot1} &\rightarrow \delta_{rot1} + \epsilon_{\alpha_1 |\delta_{rot1}| + \alpha_2 \delta_{trans}} \\
+\delta_{trans} &\rightarrow \delta_{trans} + \epsilon_{\alpha_3 \delta_{trans} + \alpha_4(|\delta_{rot1}| + |\delta_{rot2}|)} \\
+\delta_{rot2} &\rightarrow \delta_{rot2} + \epsilon_{\alpha_1 |\delta_{rot2}| + \alpha_2 \delta_{trans}}
+\end{align}
+
+\textbf{Noise parameters:}
+\begin{itemize}
+    \item $\alpha_1$ - rotation error from rotation
+    \item $\alpha_2$ - rotation error from translation
+    \item $\alpha_3$ - translation error from translation
+    \item $\alpha_4$ - translation error from rotation
+\end{itemize}
+
+\subsection{Odometry Motion Model Algorithm}
+
+\begin{algorithm}[H]
+\caption{Odometry Motion Model: $p(x_t \mid u_t, x_{t-1})$}
+\KwInput{$x_t = (x', y', \theta')^T$, $u_t = (\bar{x}_{t-1}, \bar{x}_t)$, $x_{t-1} = (x, y, \theta)^T$}
+\KwOutput{Probability $p(x_t \mid u_t, x_{t-1})$}
+
+\BlankLine
+\tcp{Extract relative motion from odometry readings}
+$\delta_{rot1} = \arctan2(\bar{y}' - \bar{y}, \bar{x}' - \bar{x}) - \bar{\theta}$\;
+$\delta_{trans} = \sqrt{(\bar{x}' - \bar{x})^2 + (\bar{y}' - \bar{y})^2}$\;
+$\delta_{rot2} = \bar{\theta}' - \bar{\theta} - \delta_{rot1}$\;
+
+\BlankLine
+\tcp{Compute expected motion from true poses}
+$\hat{\delta}_{rot1} = \arctan2(y' - y, x' - x) - \theta$\;
+$\hat{\delta}_{trans} = \sqrt{(x' - x)^2 + (y' - y)^2}$\;
+$\hat{\delta}_{rot2} = \theta' - \theta - \hat{\delta}_{rot1}$\;
+
+\BlankLine
+\tcp{Compute probability of each motion component}
+$p_1 = \text{prob}(\delta_{rot1} - \hat{\delta}_{rot1}, \alpha_1 \hat{\delta}_{rot1}^2 + \alpha_2 \hat{\delta}_{trans}^2)$\;
+$p_2 = \text{prob}(\delta_{trans} - \hat{\delta}_{trans}, \alpha_3 \hat{\delta}_{trans}^2 + \alpha_4 (\hat{\delta}_{rot1}^2 + \hat{\delta}_{rot2}^2))$\;
+$p_3 = \text{prob}(\delta_{rot2} - \hat{\delta}_{rot2}, \alpha_1 \hat{\delta}_{rot2}^2 + \alpha_2 \hat{\delta}_{trans}^2)$\;
+
+\BlankLine
+\Return{$p_1 \cdot p_2 \cdot p_3$}
+\end{algorithm}
+
+\textbf{Intuition:}
+\begin{enumerate}
+    \item \textbf{From odometry:} Extract what motion the robot \textit{thinks} it did ($\delta$'s)
+    \item \textbf{From true poses:} Compute what motion \textit{actually occurred} ($\hat{\delta}$'s)
+    \item \textbf{Compare:} Probability based on difference (larger difference = less likely)
+\end{enumerate}
+
+\textbf{Critical implementation detail:} Normalize all angular differences to $[-\pi, \pi]$ before computing probabilities!
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=0.65\textwidth]{images/odom_motion_model_noise.png}
+  \end{center}
+  \caption{Odometry motion model for different noise parameters: (a) typical noise, (b) large translational error, (c) large rotational error}
+\end{figure}
+
+% ============================================================================
+\section{Comparison: Velocity vs. Odometry Models}
+% ============================================================================
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=Model Comparison]
+
+\begin{tabular}{|l|p{5cm}|p{5cm}|}
+\hline
+\textbf{Property} & \textbf{Velocity Model} & \textbf{Odometry Model} \\
+\hline
+\textbf{Input} & Commanded velocities $(v, \omega)$ & Encoder-based poses $(\bar{x}_{t-1}, \bar{x}_t)$ \\
+\hline
+\textbf{Availability} & Before motion (predictive) & After motion (retrospective) \\
+\hline
+\textbf{Accuracy} & Lower (model mismatch) & Higher (measures actual motion) \\
+\hline
+\textbf{Suitable for} & Motion planning, prediction & State estimation, localization \\
+\hline
+\textbf{Error sources} &
+$\bullet$ Control inaccuracy \newline
+$\bullet$ Model mismatch \newline
+$\bullet$ Slippage \newline
+$\bullet$ Drift &
+$\bullet$ Slippage \newline
+$\bullet$ Drift \newline
+$\bullet$ Encoder resolution \\
+\hline
+\textbf{Noise params} & $\alpha_1$ to $\alpha_6$ & $\alpha_1$ to $\alpha_4$ \\
+\hline
+\textbf{Update freq} & Low $\Rightarrow$ models differ & High $\Rightarrow$ models similar \\
+\hline
+\end{tabular}
+
+\vspace{3mm}
+\textbf{Rule of thumb:}
+\begin{itemize}
+    \item High-frequency updates ($\Delta t$ small) $\Rightarrow$ models similar
+    \item Low-frequency updates ($\Delta t$ large) $\Rightarrow$ odometry more accurate
+\end{itemize}
+
+\end{tcolorbox}
+
+% ============================================================================
+\section{Implementation Notes}
+% ============================================================================
+
+\subsection{Common Pitfalls and Best Practices}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=\textbf{EXAM CRITICAL: Implementation Issues}]
+
+\textbf{1. Angle Wrapping}
+\begin{itemize}
+    \item Always normalize angles to $[-\pi, \pi]$ or $[0, 2\pi)$
+    \item Especially important in odometry model for $\delta_{rot1}$ and $\delta_{rot2}$
+    \item Use: \texttt{atan2(y, x)} not \texttt{atan(y/x)} (handles quadrants correctly)
+\end{itemize}
+
+\textbf{2. Division by Zero}
+\begin{itemize}
+    \item In velocity model: $\omega = 0 \Rightarrow$ straight line motion
+    \item Handle separately: $x' = x + v\cos\theta \cdot \Delta t$, $y' = y + v\sin\theta \cdot \Delta t$
+\end{itemize}
+
+\textbf{3. Coordinate Frames}
+\begin{itemize}
+    \item \textbf{Velocity model:} All in global frame
+    \item \textbf{Odometry model:} Extract relative motion (frame-independent), then apply to global poses
+\end{itemize}
+
+\textbf{4. Noise Parameters}
+\begin{itemize}
+    \item Must be determined experimentally for each robot
+    \item Larger values = more conservative (spread out distribution)
+    \item Different surfaces $\Rightarrow$ different parameters (e.g., carpet vs. tile)
+\end{itemize}
+
+\textbf{5. Probability Function}
+\begin{itemize}
+    \item Can use Gaussian: $\text{prob}(a, b^2) = \frac{1}{\sqrt{2\pi b^2}}\exp\{-\frac{a^2}{2b^2}\}$
+    \item Or triangular distribution for computational efficiency
+    \item Must integrate/sum to 1 over all hypotheses
+\end{itemize}
+
+\end{tcolorbox}
+
+\subsection{Parameter Tuning Guidelines}
+
+\textbf{Velocity model parameters $(\alpha_1, \ldots, \alpha_6)$:}
+\begin{itemize}
+    \item Start with all $\alpha_i = 0.01$ (1\% error)
+    \item Increase $\alpha_1, \alpha_2$ if robot struggles with straight-line accuracy
+    \item Increase $\alpha_3, \alpha_4$ if robot struggles with turning accuracy
+    \item Increase $\alpha_5, \alpha_6$ if systematic drift observed
+\end{itemize}
+
+\textbf{Odometry model parameters $(\alpha_1, \ldots, \alpha_4)$:}
+\begin{itemize}
+    \item Typical values: $\alpha_1 = 0.001$, $\alpha_2 = 0.001$, $\alpha_3 = 0.01$, $\alpha_4 = 0.01$
+    \item Translation often more accurate than rotation
+    \item Test on known trajectories (e.g., square, circle) and adjust
+\end{itemize}
+
+% ============================================================================
+\section{Connection to Lab 4}
+% ============================================================================
+
+\begin{tcolorbox}[colback=yellow!5!white,colframe=orange!75!black,title=Your Lab 4 Implementation]
+
+Your Lab 4 EKF uses a \textbf{hybrid approach}:
+
+\vspace{2mm}
+\textbf{Dynamics (prediction):}
+\begin{itemize}
+    \item Velocity-based with first-order model: $v_t = av_{t-1} + (1-a)u_v$
+    \item More sophisticated than basic velocity model (includes dynamics)
+\end{itemize}
+
+\textbf{Measurements (correction):}
+\begin{itemize}
+    \item Wheel encoders: directly measure $\omega_r, \omega_l$
+    \item IMU gyroscope: directly measure $\omega_g$
+    \item Related to velocities via kinematics (like odometry uses encoder data)
+\end{itemize}
+
+\textbf{Key difference from textbook models:}
+\begin{itemize}
+    \item Your lab measures velocities directly (encoders + IMU)
+    \item Textbook odometry integrates encoders into pose estimates
+    \item Your approach: fuses raw sensor data optimally via EKF
+\end{itemize}
+
+\end{tcolorbox}
+
+% ============================================================================
+\section{Exam Preparation Summary}
+% ============================================================================
+
+\begin{tcolorbox}[colback=red!10!white,colframe=red!75!black,title=\textbf{What to Memorize for Exam}]
+
+\textbf{1. Key Formulas:}
+\begin{itemize}
+    \item Velocity model: circular motion radius $r = |v/\omega|$
+    \item Odometry decomposition: $\delta_{rot1}$, $\delta_{trans}$, $\delta_{rot2}$
+    \item Noise model: variance proportional to squared velocities/motions
+\end{itemize}
+
+\textbf{2. When to Use Which Model:}
+\begin{itemize}
+    \item Velocity: planning (before motion)
+    \item Odometry: estimation (after motion)
+\end{itemize}
+
+\textbf{3. Algorithm Structure:}
+\begin{itemize}
+    \item Both: compute ideal motion $\rightarrow$ compare to actual $\rightarrow$ return probability
+    \item Independence assumption: $p_{total} = p_1 \cdot p_2 \cdot p_3$
+\end{itemize}
+
+\textbf{4. Implementation Issues:}
+\begin{itemize}
+    \item Angle normalization (critical!)
+    \item Division by zero in velocity model
+    \item \texttt{atan2} vs \texttt{atan}
+\end{itemize}
+
+\textbf{5. Noise Parameters:}
+\begin{itemize}
+    \item Know what each $\alpha_i$ represents
+    \item Larger values = more uncertainty in that component
+\end{itemize}
+
+\end{tcolorbox}
+
+% ============================================================================
+% END OF ROBOT MOTION NOTES
+% ============================================================================

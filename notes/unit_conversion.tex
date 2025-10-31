@@ -1,0 +1,668 @@
+
+\section{Unit Conversion Tables}
+
+\begin{tcolorbox}[colback=red!10!white,colframe=red!75!black,title= EXAM TIP: Always Convert to SI First!]
+Before doing ANY calculation:
+\begin{enumerate}
+    \item Convert ALL inputs to SI units
+    \item Do your calculation in SI
+    \item Convert output back if needed
+\end{enumerate}
+
+\textbf{Common exam trap:} Mixing units (e.g., velocity in mph with time in seconds)
+\end{tcolorbox}
+
+% ============================================================================
+\subsection{Length \& Distance}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to meters (m)} \\
+\hline
+Millimeter & mm & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+Centimeter & cm & $\times 10^{-2}$ or $\div 100$ \\
+\hline
+Kilometer & km & $\times 10^{3}$ or $\times 1000$ \\
+\hline
+\rowcolor{yellow!20}
+Inch & in & $\times 0.0254$ or $\times 2.54 \times 10^{-2}$ \\
+\hline
+\rowcolor{yellow!20}
+Foot & ft & $\times 0.3048$ \\
+\hline
+\rowcolor{yellow!20}
+Yard & yd & $\times 0.9144$ \\
+\hline
+\rowcolor{yellow!20}
+Mile & mi & $\times 1609.34$ \\
+\hline
+\rowcolor{yellow!20}
+Nautical mile & nmi & $\times 1852$ \\
+\hline
+\end{tabular}
+\caption{Length conversions (yellow = Imperial/US)}
+\end{table}
+
+\textbf{Common robotics values:}
+\begin{itemize}
+    \item Wheel radius: 33 mm = 0.033 m = 3.3 cm
+    \item Robot width: 143.5 mm = 0.1435 m = 14.35 cm
+    \item Camera height: 6 ft = 1.829 m
+\end{itemize}
+
+% ============================================================================
+\subsection{Mass}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to kilograms (kg)} \\
+\hline
+Gram & g & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+Milligram & mg & $\times 10^{-6}$ or $\div 1{,}000{,}000$ \\
+\hline
+Metric ton & t & $\times 1000$ \\
+\hline
+\rowcolor{yellow!20}
+Pound (mass) & lbm & $\times 0.453592$ \\
+\hline
+\rowcolor{yellow!20}
+Ounce & oz & $\times 0.0283495$ \\
+\hline
+\rowcolor{yellow!20}
+Slug & slug & $\times 14.5939$ \\
+\hline
+\end{tabular}
+\caption{Mass conversions}
+\end{table}
+
+\textbf{Quick approximations:}
+\begin{itemize}
+    \item 1 kg $\approx$ 2.2 lbm
+    \item 1 lbm $\approx$ 0.45 kg
+\end{itemize}
+
+% ============================================================================
+\subsection{Force}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to Newtons (N)} \\
+\hline
+Kilonewton & kN & $\times 1000$ \\
+\hline
+Millinewton & mN & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+Dyne & dyn & $\times 10^{-5}$ \\
+\hline
+\rowcolor{yellow!20}
+Pound-force & lbf & $\times 4.44822$ \\
+\hline
+\rowcolor{yellow!20}
+Kilogram-force & kgf & $\times 9.80665$ \\
+\hline
+\rowcolor{yellow!20}
+Ounce-force & ozf & $\times 0.278014$ \\
+\hline
+\end{tabular}
+\caption{Force conversions}
+\end{table}
+
+\textbf{Weight conversions (assuming $g = 9.81$ m/s²):}
+\begin{itemize}
+    \item Weight of 1 kg mass: $F = mg = 1 \times 9.81 = 9.81$ N
+    \item 1 lbf $\approx$ 4.45 N (weight of 1 lbm mass on Earth)
+\end{itemize}
+
+\begin{tcolorbox}[colback=orange!10!white,colframe=orange!75!black,title= Common Confusion: lbm vs lbf]
+\begin{itemize}
+    \item \textbf{lbm} (pound mass) = unit of mass = 0.454 kg
+    \item \textbf{lbf} (pound force) = unit of force = 4.45 N
+    \item Relationship: $F[\text{lbf}] = m[\text{lbm}] \times g[\text{ft/s}^2] / 32.174$
+    \item On Earth: 1 lbm weighs 1 lbf (by design)
+\end{itemize}
+\end{tcolorbox}
+
+% ============================================================================
+\subsection{Linear Velocity}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to m/s} \\
+\hline
+Kilometer/hour & km/h & $\div 3.6$ or $\times 0.277778$ \\
+\hline
+Centimeter/second & cm/s & $\times 0.01$ or $\div 100$ \\
+\hline
+Millimeter/second & mm/s & $\times 0.001$ or $\div 1000$ \\
+\hline
+\rowcolor{yellow!20}
+Feet/second & ft/s & $\times 0.3048$ \\
+\hline
+\rowcolor{yellow!20}
+Miles/hour & mph & $\times 0.44704$ \\
+\hline
+\rowcolor{yellow!20}
+Knots & kn or kt & $\times 0.514444$ \\
+\hline
+\rowcolor{yellow!20}
+Inch/second & in/s & $\times 0.0254$ \\
+\hline
+\end{tabular}
+\caption{Linear velocity conversions}
+\end{table}
+
+\textbf{Quick approximations:}
+\begin{itemize}
+    \item 100 km/h $\approx$ 28 m/s
+    \item 60 mph $\approx$ 27 m/s (approximately 100 km/h)
+    \item 1 m/s $\approx$ 3.6 km/h
+\end{itemize}
+
+% ============================================================================
+\subsection{Linear Acceleration}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to m/s²} \\
+\hline
+Standard gravity & $g$ & $\times 9.80665$ (exact) or $\approx 9.81$ \\
+\hline
+Centimeter/second² & cm/s² & $\times 0.01$ or $\div 100$ \\
+\hline
+Gal (galileo) & Gal & $\times 0.01$ (= 1 cm/s²) \\
+\hline
+\rowcolor{yellow!20}
+Feet/second² & ft/s² & $\times 0.3048$ \\
+\hline
+\rowcolor{yellow!20}
+Inch/second² & in/s² & $\times 0.0254$ \\
+\hline
+\end{tabular}
+\caption{Linear acceleration conversions}
+\end{table}
+
+\textbf{Common accelerations:}
+\begin{itemize}
+    \item Earth gravity: $g = 9.81$ m/s² $= 32.174$ ft/s²
+    \item Fast car: 0-60 mph in 3 sec $\approx 8.9$ m/s² $\approx 0.9g$
+    \item Elevator: $\approx 1-2$ m/s²
+\end{itemize}
+
+% ============================================================================
+\subsection{Angular Measure}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to radians (rad)} \\
+\hline
+Degree & ° or deg & $\times \frac{\pi}{180} \approx 0.0174533$ \\
+\hline
+Revolution & rev & $\times 2\pi \approx 6.28319$ \\
+\hline
+Gradian & grad & $\times \frac{\pi}{200}$ \\
+\hline
+Arcminute & ' & $\times \frac{\pi}{10800}$ \\
+\hline
+Arcsecond & '' & $\times \frac{\pi}{648000}$ \\
+\hline
+\end{tabular}
+\caption{Angular measure conversions}
+\end{table}
+
+\textbf{Key conversions (memorize these):}
+\begin{align*}
+180 &= \pi \text{ rad} \\
+90 &= \frac{\pi}{2} \text{ rad} \approx 1.5708 \text{ rad} \\
+45 &= \frac{\pi}{4} \text{ rad} \approx 0.7854 \text{ rad} \\
+30 &= \frac{\pi}{6} \text{ rad} \approx 0.5236 \text{ rad} \\
+1 &\approx 0.01745 \text{ rad} \\
+1 \text{ rad} &\approx 57.2958
+\end{align*}
+
+% ============================================================================
+\subsection{Angular Velocity}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to rad/s} \\
+\hline
+Degree/second & deg/s or °/s & $\times \frac{\pi}{180} \approx 0.0174533$ \\
+\hline
+Revolution/second & rev/s or rps & $\times 2\pi \approx 6.28319$ \\
+\hline
+Revolution/minute & rpm & $\times \frac{2\pi}{60} \approx 0.10472$ \\
+\hline
+Hertz (cycles/sec) & Hz & $\times 2\pi \approx 6.28319$ \\
+\hline
+\end{tabular}
+\caption{Angular velocity conversions}
+\end{table}
+
+\textbf{Common values:}
+\begin{itemize}
+    \item Motor: 3000 rpm = 314.16 rad/s $\approx$ 50 rev/s
+    \item Wheel encoder: 100 rpm = 10.47 rad/s
+    \item Earth rotation: 1 rev/day = $7.27 \times 10^{-5}$ rad/s
+\end{itemize}
+
+\textbf{Quick formula:}
+\begin{equation}
+\omega[\text{rad/s}] = \frac{2\pi \cdot N[\text{rpm}]}{60} = 0.10472 \cdot N[\text{rpm}]
+\end{equation}
+
+% ============================================================================
+\subsection{Time}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to seconds (s)} \\
+\hline
+Millisecond & ms & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+Microsecond & $\mu$s & $\times 10^{-6}$ or $\div 1{,}000{,}000$ \\
+\hline
+Nanosecond & ns & $\times 10^{-9}$ \\
+\hline
+Minute & min & $\times 60$ \\
+\hline
+Hour & h or hr & $\times 3600$ \\
+\hline
+Day & d & $\times 86400$ \\
+\hline
+\end{tabular}
+\caption{Time conversions}
+\end{table}
+
+\textbf{Sampling rates:}
+\begin{itemize}
+    \item 100 Hz = 0.01 s = 10 ms period
+    \item 50 Hz = 0.02 s = 20 ms period
+    \item 10 Hz = 0.1 s = 100 ms period
+    \item 1 kHz = 0.001 s = 1 ms period
+\end{itemize}
+
+% ============================================================================
+\subsection{Area}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to m²} \\
+\hline
+Square centimeter & cm² & $\times 10^{-4}$ or $\div 10{,}000$ \\
+\hline
+Square millimeter & mm² & $\times 10^{-6}$ \\
+\hline
+Square kilometer & km² & $\times 10^{6}$ \\
+\hline
+Hectare & ha & $\times 10{,}000$ \\
+\hline
+\rowcolor{yellow!20}
+Square inch & in² & $\times 0.00064516$ \\
+\hline
+\rowcolor{yellow!20}
+Square foot & ft² & $\times 0.092903$ \\
+\hline
+\rowcolor{yellow!20}
+Square yard & yd² & $\times 0.836127$ \\
+\hline
+\rowcolor{yellow!20}
+Acre & ac & $\times 4046.86$ \\
+\hline
+\end{tabular}
+\caption{Area conversions}
+\end{table}
+
+% ============================================================================
+\subsection{Volume}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to m³} \\
+\hline
+Liter & L & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+Milliliter & mL & $\times 10^{-6}$ \\
+\hline
+Cubic centimeter & cm³ or cc & $\times 10^{-6}$ (= 1 mL) \\
+\hline
+Cubic millimeter & mm³ & $\times 10^{-9}$ \\
+\hline
+\rowcolor{yellow!20}
+Cubic inch & in³ & $\times 1.6387 \times 10^{-5}$ \\
+\hline
+\rowcolor{yellow!20}
+Cubic foot & ft³ & $\times 0.0283168$ \\
+\hline
+\rowcolor{yellow!20}
+US gallon & gal & $\times 0.00378541$ \\
+\hline
+\rowcolor{yellow!20}
+US fluid ounce & fl oz & $\times 2.9574 \times 10^{-5}$ \\
+\hline
+\end{tabular}
+\caption{Volume conversions}
+\end{table}
+
+% ============================================================================
+\subsection{Density}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to kg/m³} \\
+\hline
+Gram/cm³ & g/cm³ & $\times 1000$ \\
+\hline
+Gram/liter & g/L & (already kg/m³) \\
+\hline
+\rowcolor{yellow!20}
+Pound/cubic foot & lb/ft³ & $\times 16.0185$ \\
+\hline
+\rowcolor{yellow!20}
+Pound/cubic inch & lb/in³ & $\times 27{,}679.9$ \\
+\hline
+\rowcolor{yellow!20}
+Slug/cubic foot & slug/ft³ & $\times 515.379$ \\
+\hline
+\end{tabular}
+\caption{Density conversions}
+\end{table}
+
+\textbf{Common densities:}
+\begin{itemize}
+    \item Water: 1000 kg/m³ = 1 g/cm³
+    \item Air (STP): 1.225 kg/m³
+    \item Steel: $\approx$ 7850 kg/m³
+    \item Aluminum: $\approx$ 2700 kg/m³
+\end{itemize}
+
+% ============================================================================
+\subsection{Pressure \& Stress}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to Pascals (Pa)} \\
+\hline
+Kilopascal & kPa & $\times 1000$ \\
+\hline
+Megapascal & MPa & $\times 10^{6}$ \\
+\hline
+Bar & bar & $\times 10^{5}$ or $\times 100{,}000$ \\
+\hline
+Millibar & mbar & $\times 100$ \\
+\hline
+Atmosphere & atm & $\times 101{,}325$ \\
+\hline
+\rowcolor{yellow!20}
+Pound/square inch & psi & $\times 6894.76$ \\
+\hline
+\rowcolor{yellow!20}
+Pound/square foot & psf & $\times 47.8803$ \\
+\hline
+Torr (mmHg) & Torr & $\times 133.322$ \\
+\hline
+\end{tabular}
+\caption{Pressure conversions}
+\end{table}
+
+\textbf{Common pressures:}
+\begin{itemize}
+    \item Atmospheric: 1 atm = 101.325 kPa = 14.7 psi
+    \item Tire pressure: 30 psi $\approx$ 207 kPa $\approx$ 2.07 bar
+\end{itemize}
+
+% ============================================================================
+\subsection{Energy \& Work}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to Joules (J)} \\
+\hline
+Kilojoule & kJ & $\times 1000$ \\
+\hline
+Watt-hour & Wh & $\times 3600$ \\
+\hline
+Kilowatt-hour & kWh & $\times 3.6 \times 10^{6}$ \\
+\hline
+Calorie & cal & $\times 4.184$ \\
+\hline
+Kilocalorie & kcal & $\times 4184$ \\
+\hline
+Electronvolt & eV & $\times 1.602 \times 10^{-19}$ \\
+\hline
+\rowcolor{yellow!20}
+British thermal unit & BTU & $\times 1055.06$ \\
+\hline
+\rowcolor{yellow!20}
+Foot-pound & ft·lbf & $\times 1.35582$ \\
+\hline
+\rowcolor{yellow!20}
+Inch-pound & in·lbf & $\times 0.112985$ \\
+\hline
+\end{tabular}
+\caption{Energy conversions}
+\end{table}
+
+\textbf{Note:} $1 \text{ J} = 1 \text{ N·m} = 1 \text{ kg·m}^2\text{/s}^2$
+
+% ============================================================================
+\subsection{Power}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to Watts (W)} \\
+\hline
+Kilowatt & kW & $\times 1000$ \\
+\hline
+Megawatt & MW & $\times 10^{6}$ \\
+\hline
+Milliwatt & mW & $\times 10^{-3}$ or $\div 1000$ \\
+\hline
+\rowcolor{yellow!20}
+Horsepower (mech.) & hp & $\times 745.7$ \\
+\hline
+\rowcolor{yellow!20}
+Horsepower (metric) & PS & $\times 735.5$ \\
+\hline
+\rowcolor{yellow!20}
+Foot-pound/second & ft·lbf/s & $\times 1.35582$ \\
+\hline
+BTU/hour & BTU/h & $\times 0.293071$ \\
+\hline
+\end{tabular}
+\caption{Power conversions}
+\end{table}
+
+\textbf{Common powers:}
+\begin{itemize}
+    \item Small DC motor: 10-100 W
+    \item Car engine: 100-300 hp $\approx$ 75-225 kW
+    \item Human sustained: $\approx$ 75 W (1/10 hp)
+\end{itemize}
+
+\textbf{Note:} $1 \text{ W} = 1 \text{ J/s} = 1 \text{ N·m/s}$
+
+% ============================================================================
+\subsection{Torque}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to N·m} \\
+\hline
+Kilonewton-meter & kN·m & $\times 1000$ \\
+\hline
+Newton-centimeter & N·cm & $\times 0.01$ or $\div 100$ \\
+\hline
+Newton-millimeter & N·mm & $\times 0.001$ or $\div 1000$ \\
+\hline
+\rowcolor{yellow!20}
+Pound-foot & lb·ft or lbf·ft & $\times 1.35582$ \\
+\hline
+\rowcolor{yellow!20}
+Pound-inch & lb·in or lbf·in & $\times 0.112985$ \\
+\hline
+\rowcolor{yellow!20}
+Ounce-inch & oz·in & $\times 0.00706155$ \\
+\hline
+\end{tabular}
+\caption{Torque conversions}
+\end{table}
+
+\textbf{Note:} Torque and energy have the same dimensions (N·m), but torque is NOT measured in Joules!
+
+\begin{tcolorbox}[colback=orange!10!white,colframe=orange!75!black,title=Power-Torque-Speed Relationship]
+\begin{equation}
+P = \tau \cdot \omega
+\end{equation}
+where:
+\begin{itemize}
+    \item $P$ = power [W]
+    \item $\tau$ = torque [N·m]
+    \item $\omega$ = angular velocity [rad/s]
+\end{itemize}
+
+\textbf{Imperial version:}
+\begin{equation}
+\text{HP} = \frac{\tau[\text{lb·ft}] \times \text{RPM}}{5252}
+\end{equation}
+\end{tcolorbox}
+
+% ============================================================================
+\subsection{Moment of Inertia}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to kg·m²} \\
+\hline
+Gram-cm² & g·cm² & $\times 10^{-7}$ \\
+\hline
+Kilogram-cm² & kg·cm² & $\times 10^{-4}$ or $\div 10{,}000$ \\
+\hline
+\rowcolor{yellow!20}
+Pound-foot² & lb·ft² & $\times 0.0421401$ \\
+\hline
+\rowcolor{yellow!20}
+Pound-inch² & lb·in² & $\times 2.9264 \times 10^{-4}$ \\
+\hline
+\rowcolor{yellow!20}
+Slug-foot² & slug·ft² & $\times 1.35582$ \\
+\hline
+\end{tabular}
+\caption{Moment of inertia conversions}
+\end{table}
+
+\textbf{Common shapes:}
+\begin{itemize}
+    \item Solid cylinder (about axis): $I = \frac{1}{2}mr^2$
+    \item Solid sphere: $I = \frac{2}{5}mr^2$
+    \item Thin rod (about center): $I = \frac{1}{12}mL^2$
+    \item Point mass at distance $r$: $I = mr^2$
+\end{itemize}
+
+% ============================================================================
+\subsection{Frequency \& Sampling Rate}
+% ============================================================================
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\rowcolor{blue!20}
+\textbf{Unit} & \textbf{Symbol} & \textbf{Conversion to Hz} \\
+\hline
+Kilohertz & kHz & $\times 1000$ \\
+\hline
+Megahertz & MHz & $\times 10^{6}$ \\
+\hline
+Gigahertz & GHz & $\times 10^{9}$ \\
+\hline
+Cycles/minute & cpm & $\div 60$ \\
+\hline
+Revolutions/minute & rpm & $\div 60$ \\
+\hline
+\end{tabular}
+\caption{Frequency conversions}
+\end{table}
+
+\textbf{Period-Frequency relationship:}
+\begin{equation}
+f[\text{Hz}] = \frac{1}{T[\text{s}]} \quad \Leftrightarrow \quad T[\text{s}] = \frac{1}{f[\text{Hz}]}
+\end{equation}
+
+\textbf{Common sampling rates:}
+\begin{itemize}
+    \item IMU: 100-1000 Hz ($\Delta t$ = 10-1 ms)
+    \item Camera: 30-60 Hz ($\Delta t$ = 33-17 ms)
+    \item LIDAR: 10-40 Hz ($\Delta t$ = 100-25 ms)
+    \item Control loop: 50-500 Hz ($\Delta t$ = 20-2 ms)
+\end{itemize}
+
+% ============================================================================
+% ============================================================================
+
+

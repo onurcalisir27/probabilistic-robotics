@@ -1,0 +1,322 @@
+% ============================================================================
+% BAYES FILTER - EXAM NOTES
+% Optimized for open-book exam: Quick reference + complete derivations
+% ============================================================================
+
+\section{Quick Reference: Bayes Filter}
+
+\begin{tcolorbox}[colback=yellow!10!white,colframe=orange!75!black,title=\textbf{Bayes Filter - Fast Reference}]
+\textbf{Purpose:} Recursive state estimation from noisy sensors and imperfect control
+
+\vspace{2mm}
+\textbf{Required Models:}
+\begin{itemize}
+    \item \textbf{Motion model:} $p(x_t \mid x_{t-1}, u_t)$ - how state evolves with control
+    \item \textbf{Sensor model:} $p(z_t \mid x_t)$ - how measurements relate to state
+\end{itemize}
+
+\vspace{2mm}
+\textbf{Two-Step Algorithm:}
+\begin{enumerate}
+    \item \textbf{Prediction (Control Update):} 
+    $$\bar{bel}(x_t) = \int p(x_t \mid x_{t-1}, u_t) \, bel(x_{t-1}) \, dx_{t-1}$$
+    
+    \item \textbf{Correction (Measurement Update):} 
+    $$bel(x_t) = \eta \, p(z_t \mid x_t) \, \bar{bel}(x_t)$$
+    where $\eta = \frac{1}{p(z_t \mid z_{1:t-1}, u_{1:t})}$ is the normalization constant
+\end{enumerate}
+
+\vspace{2mm}
+\textbf{Key Definitions:}
+\begin{itemize}
+    \item $bel(x_t) = p(x_t \mid z_{1:t}, u_{1:t})$ - belief after measurement
+    \item $\bar{bel}(x_t) = p(x_t \mid z_{1:t-1}, u_{1:t})$ - belief after control (prediction)
+\end{itemize}
+
+\vspace{2mm}
+\textbf{Critical Assumptions:}
+\begin{itemize}
+    \item \textbf{Markov property:} $p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) = p(x_t \mid x_{t-1}, u_t)$
+    \item \textbf{Complete state:} $x_t$ contains all info needed to predict future
+    \item \textbf{Known models:} Both $p(x_t|x_{t-1},u_t)$ and $p(z_t|x_t)$ are given
+\end{itemize}
+\end{tcolorbox}
+
+\vspace{3mm}
+\textbf{Intuition:} Prediction spreads uncertainty (convolution), correction shrinks uncertainty (multiplication with likelihood).
+
+% ============================================================================
+\section{Probability Fundamentals}
+% ============================================================================
+
+\subsection{Basic Concepts}
+
+In probabilistic robotics, sensor measurements, controls, and robot states are modeled as \textbf{random variables} since no sensor measures perfectly and no actuation results in perfect motion.
+
+\subsubsection{Discrete vs. Continuous Random Variables}
+
+For discrete random variable $X$ taking value $x$:
+\begin{align}
+  p(X=x) \geq 0, \qquad \sum_{x}{p(X=x)} = 1
+\end{align}
+
+For continuous random variable with probability density function (PDF):
+\begin{align}
+  p(x) \geq 0, \qquad \int{p(x)\,dx} = 1
+\end{align}
+
+\textbf{Note:} Unlike discrete probabilities, PDF values can exceed 1.
+
+\subsubsection{Important Distributions}
+
+\textbf{Univariate Gaussian:}
+\begin{equation}
+    p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left\{-\frac{(x-\mu)^2}{2\sigma^2}\right\} = \mathcal{N}(x; \mu, \sigma^2)
+\end{equation}
+
+\textbf{Multivariate Gaussian:}
+\begin{equation}
+  p(\mathbf{x}) = \det(2\pi\Sigma)^{-\frac{1}{2}} \exp\left\{-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^{T}\Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\right\}
+  \label{eq:multivariate_normal}
+\end{equation}
+where $\boldsymbol{\mu}$ is mean vector and $\Sigma$ is covariance matrix (positive semidefinite, symmetric).
+
+% ----------------------------------------------------------------------------
+\subsection{Key Probability Rules}
+
+\begin{tcolorbox}[colback=blue!5!white,colframe=blue!75!black,title=Essential Probability Rules]
+
+\textbf{Conditional Probability:}
+\begin{equation}
+    p(x|z) = \frac{p(x,z)}{p(z)}
+\end{equation}
+
+\textbf{Independence:} If $X$ and $Z$ are independent:
+\begin{equation}
+    p(x, z) = p(x)p(z) \quad \Rightarrow \quad p(x|z) = p(x)
+\end{equation}
+
+\textbf{Law of Total Probability:}
+\begin{align}
+  p(x) &= \sum_{z}{p(x \mid z)p(z)}  && \text{(discrete)}\\
+  p(x) &= \int{p(x \mid z)p(z) \, dz} && \text{(continuous)}
+\end{align}
+
+\textbf{Bayes Rule:}
+\begin{equation}
+  p(x \mid z) = \frac{p(z \mid x)p(x)}{p(z)} = \frac{p(z \mid x)p(x)}{\int{p(z \mid x')p(x')\,dx'}}
+\end{equation}
+
+\textbf{Normalized form:}
+\begin{equation}
+  p(x \mid z) = \eta \, p(z \mid x)p(x)
+  \label{eq:bayes_normalized}
+\end{equation}
+where $\eta = 1/p(z)$ is the normalization constant.
+
+\textbf{Conditional Bayes Rule:} For conditioning on additional variable $y$:
+\begin{equation}
+  p(x \mid z, y) = \frac{p(z \mid x,y)p(x \mid y)}{p(z \mid y)}
+\end{equation}
+
+\end{tcolorbox}
+
+\textbf{Terminology in Robotics Context:}
+\begin{itemize}
+    \item $p(x)$ - \textbf{prior}: knowledge before incorporating data
+    \item $p(x|z)$ - \textbf{posterior}: knowledge after incorporating measurement $z$
+    \item $p(z|x)$ - \textbf{likelihood} or \textbf{generative model}: probability of observing $z$ given state $x$
+\end{itemize}
+
+% ============================================================================
+\section{Bayes Filter: Complete Derivation}
+% ============================================================================
+
+\subsection{Probabilistic State Space Models}
+
+The evolution of robot state and measurements follows probabilistic laws. We make two fundamental assumptions:
+
+\begin{tcolorbox}[colback=green!5!white,colframe=green!60!black,title=Conditional Independence Assumptions]
+
+\textbf{1. Complete State (Markov Property):}
+
+If state $x_t$ is \textit{complete}, it contains all information needed to predict the future. Past states, measurements, and controls become irrelevant:
+
+\begin{equation}
+  p(x_t \mid x_{0:t-1}, z_{1:t-1}, u_{1:t}) = p(x_t \mid x_{t-1}, u_t)
+  \label{eq:markov_motion}
+\end{equation}
+
+This is the \textbf{state transition probability} or \textbf{motion model}.
+
+\vspace{3mm}
+\textbf{2. Measurement Independence:}
+
+Current measurement depends only on current state:
+
+\begin{equation}
+  p(z_t \mid x_{0:t}, z_{1:t-1}, u_{1:t}) = p(z_t \mid x_t)
+  \label{eq:markov_measurement}
+\end{equation}
+
+This is the \textbf{measurement probability} or \textbf{sensor model}.
+
+\end{tcolorbox}
+
+This temporal generative model is also known as a \textbf{Hidden Markov Model (HMM)} or \textbf{Dynamic Bayes Network (DBN)}.
+
+\begin{figure}[H]
+  \centering
+	\includegraphics[width=0.6\textwidth]{images/bayesian_network.png}
+	\caption{Dynamic Bayes Network showing conditional independence structure}
+\end{figure}
+
+% ----------------------------------------------------------------------------
+\subsection{Belief Representation}
+
+\begin{definition}[Belief]
+  A \textbf{belief} represents the robot's internal knowledge about the environment state. It assigns probability to each hypothesis about the true state:
+
+\begin{equation}
+    bel(x_t) = p(x_t \mid z_{1:t}, u_{1:t})
+\end{equation}
+
+This is the posterior probability over $x_t$ given all measurements $z_{1:t}$ and controls $u_{1:t}$ up to time $t$.
+\end{definition}
+
+\begin{definition}[Predicted Belief]
+The \textbf{predicted belief} (or prediction) represents knowledge about state \textit{before} incorporating measurement $z_t$, but \textit{after} applying control $u_t$:
+
+\begin{equation}
+  \bar{bel}(x_t) = p(x_t \mid z_{1:t-1}, u_{1:t})
+\end{equation}
+\end{definition}
+
+% ----------------------------------------------------------------------------
+\subsection{The Bayes Filter Derivation}
+
+\textbf{Goal:} Compute $bel(x_t) = p(x_t \mid z_{1:t}, u_{1:t})$ recursively from $bel(x_{t-1})$.
+
+\subsubsection{Step 1: Prediction (Control Update)}
+
+Starting from the definition:
+\begin{align}
+\bar{bel}(x_t) &= p(x_t \mid z_{1:t-1}, u_{1:t}) \\
+%
+&= \int p(x_t, x_{t-1} \mid z_{1:t-1}, u_{1:t}) \, dx_{t-1} 
+\tag{marginalization} \\
+%
+&= \int p(x_t \mid x_{t-1}, z_{1:t-1}, u_{1:t}) \cdot p(x_{t-1} \mid z_{1:t-1}, u_{1:t}) \, dx_{t-1} 
+\tag{product rule} \\
+%
+&= \int p(x_t \mid x_{t-1}, u_t) \cdot p(x_{t-1} \mid z_{1:t-1}, u_{1:t}) \, dx_{t-1} 
+\tag{Markov, eq.~\ref{eq:markov_motion}} \\
+%
+&= \int p(x_t \mid x_{t-1}, u_t) \cdot p(x_{t-1} \mid z_{1:t-1}, u_{1:t-1}) \, dx_{t-1} 
+\tag{$u_t$ doesn't affect past} \\
+%
+&= \int p(x_t \mid x_{t-1}, u_t) \cdot bel(x_{t-1}) \, dx_{t-1}
+\tag{definition of belief}
+\end{align}
+
+\begin{tcolorbox}[colback=blue!10!white,colframe=blue!75!black]
+\textbf{Prediction Step Result:}
+\begin{equation}
+\boxed{\bar{bel}(x_t) = \int p(x_t \mid x_{t-1}, u_t) \, bel(x_{t-1}) \, dx_{t-1}}
+\label{eq:prediction_step}
+\end{equation}
+
+\textbf{Intuition:} This is a convolution of the previous belief with the motion model. It \textit{spreads} uncertainty as we predict forward.
+\end{tcolorbox}
+
+\subsubsection{Step 2: Correction (Measurement Update)}
+
+Starting from the definition:
+\begin{align}
+bel(x_t) &= p(x_t \mid z_{1:t}, u_{1:t}) \\
+%
+&= p(x_t \mid z_t, z_{1:t-1}, u_{1:t}) 
+\tag{rewrite $z_{1:t}$} \\
+%
+&= \frac{p(z_t \mid x_t, z_{1:t-1}, u_{1:t}) \cdot p(x_t \mid z_{1:t-1}, u_{1:t})}{p(z_t \mid z_{1:t-1}, u_{1:t})} 
+\tag{Bayes rule} \\
+%
+&= \frac{p(z_t \mid x_t) \cdot p(x_t \mid z_{1:t-1}, u_{1:t})}{p(z_t \mid z_{1:t-1}, u_{1:t})} 
+\tag{Markov, eq.~\ref{eq:markov_measurement}} \\
+%
+&= \frac{p(z_t \mid x_t) \cdot \bar{bel}(x_t)}{p(z_t \mid z_{1:t-1}, u_{1:t})} 
+\tag{definition of $\bar{bel}$} \\
+%
+&= \eta \cdot p(z_t \mid x_t) \cdot \bar{bel}(x_t)
+\tag{normalization constant}
+\end{align}
+
+where $\eta = \left[p(z_t \mid z_{1:t-1}, u_{1:t})\right]^{-1}$ is computed by:
+\begin{equation}
+\eta = \left[\int p(z_t \mid x_t) \, \bar{bel}(x_t) \, dx_t \right]^{-1}
+\end{equation}
+
+\begin{tcolorbox}[colback=blue!10!white,colframe=blue!75!black]
+\textbf{Correction Step Result:}
+\begin{equation}
+\boxed{bel(x_t) = \eta \, p(z_t \mid x_t) \, \bar{bel}(x_t)}
+\label{eq:correction_step}
+\end{equation}
+
+\textbf{Intuition:} This multiplies the prediction by the likelihood of the measurement. High-likelihood states get \textit{reinforced}, low-likelihood states get \textit{suppressed}, reducing uncertainty.
+\end{tcolorbox}
+
+% ----------------------------------------------------------------------------
+\subsection{The Bayes Filter Algorithm}
+
+\begin{algorithm}[H]
+\caption{Bayes Filter Algorithm}
+\KwInput{$bel(x_{t-1})$, control $u_t$, measurement $z_t$}
+\KwOutput{$bel(x_t)$}
+
+\BlankLine
+\tcp{PREDICTION: Incorporate control}
+\For{all $x_t$}{
+    $\overline{bel}(x_t) = \int p(x_t \mid u_t, x_{t-1}) \cdot bel(x_{t-1}) \, dx_{t-1}$\;
+}
+
+\BlankLine
+\tcp{CORRECTION: Incorporate measurement}
+\For{all $x_t$}{
+    $bel(x_t) = \eta \cdot p(z_t \mid x_t) \cdot \overline{bel}(x_t)$\;
+}
+
+\BlankLine
+\Return{$bel(x_t)$}
+\end{algorithm}
+
+\textbf{Boundary Condition:} Requires initial belief $bel(x_0)$ at $t=0$.
+
+% ----------------------------------------------------------------------------
+\subsection{Properties and Limitations}
+
+\begin{itemize}
+    \item \textbf{Recursive:} Only need $bel(x_{t-1})$, not entire history
+    \item \textbf{Optimal:} Computes exact posterior under the assumptions
+    \item \textbf{General framework:} Kalman filter, particle filter, histogram filter are all special cases
+    \item \textbf{Computational challenge:} Integral in prediction step is often intractable for continuous, high-dimensional state spaces
+    \item \textbf{Assumes known models:} Both motion and sensor models must be specified
+\end{itemize}
+
+% ----------------------------------------------------------------------------
+\subsection{Key Takeaways}
+
+\begin{tcolorbox}[colback=red!5!white,colframe=red!75!black,title=Remember for Exam]
+\begin{enumerate}
+    \item \textbf{Two steps:} Prediction (spread uncertainty) $\rightarrow$ Correction (reduce uncertainty)
+    \item \textbf{Prediction uses:} Total probability theorem + Markov assumption
+    \item \textbf{Correction uses:} Bayes rule + Markov assumption
+    \item \textbf{Markov assumption crucial:} Past becomes irrelevant given current state
+    \item \textbf{Normalization:} Always normalize correction step so $\int bel(x_t) dx_t = 1$
+    \item \textbf{Complete state required:} Otherwise Markov property violated
+\end{enumerate}
+\end{tcolorbox}
+
+% ============================================================================
+% END OF BAYES FILTER NOTES
+% ============================================================================
